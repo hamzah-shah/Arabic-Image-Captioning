@@ -41,7 +41,7 @@ class Encoder(tf.keras.Model):
             self.encoder.add(layer)
         
         # manually add last layer
-        self.fc3 = tf.keras.layers.Dense(units=256, activation="tanh", name="fc3")
+        self.fc3 = tf.keras.layers.Dense(units=256, activation="tanh", name="fc3") # TODO: how to train the weights of this last layer?
         self.encoder.add(self.fc3)
 
     def call(self, img):
