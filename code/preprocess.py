@@ -1,0 +1,1 @@
+# check image size: (224, 224) is optimal for VGG16
