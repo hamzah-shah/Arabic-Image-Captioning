@@ -103,7 +103,7 @@ def clean_caption(caption):
 
 
 
-def make_capition_dict(raw_data):
+def make_caption_dict(raw_data):
     output = {}
 
     for line in raw_data:        
@@ -127,4 +127,4 @@ def make_capition_dict(raw_data):
     # print(len(output), output)
     return output
 
-make_capition_dict(imgs)
+make_caption_dict(imgs)
