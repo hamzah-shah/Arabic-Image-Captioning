@@ -1,6 +1,6 @@
-import tensorflow as tf
-from tensorflow.keras.preprocessing import image
-from tensorflow.keras.applications.vgg16 import preprocess_input
+# import tensorflow as tf
+# from tensorflow.keras.preprocessing import image
+# from tensorflow.keras.applications.vgg16 import preprocess_input
 import os
 import re
 
@@ -12,22 +12,22 @@ def get_image_list(filename):
     return imgs
     
 
-train_imgs = get_image_list("Flickr_8k.trainImages.txt") # 6000
-val_imgs = get_image_list("Flickr_8k.devImages.txt") # 1000
-test_imgs = get_image_list("Flickr_8k.testImages.txt") # 1000
+# train_imgs = get_image_list("Flickr_8k.trainImages.txt") # 6000
+# val_imgs = get_image_list("Flickr_8k.devImages.txt") # 1000
+# test_imgs = get_image_list("Flickr_8k.testImages.txt") # 1000
 
-# 8000 images
-all_imgs = train_imgs + val_imgs + test_imgs
-assert(len(all_imgs) == len(set(all_imgs))) # no image in more than one split category
+# # 8000 images
+# all_imgs = train_imgs + val_imgs + test_imgs
+# assert(len(all_imgs) == len(set(all_imgs))) # no image in more than one split category
 
-# 8091 images in the Flicker_8k dataset
-dir = os.path.join(os.getcwd(), "data/Flicker8k_Dataset")
-file_list = os.listdir(dir)
-assert(len(file_list) == len(set(file_list)))
+# # 8091 images in the Flicker_8k dataset
+# dir = os.path.join(os.getcwd(), "data/Flicker8k_Dataset")
+# file_list = os.listdir(dir)
+# assert(len(file_list) == len(set(file_list)))
 
-# 91 images from Flicker_8k not used in train/val/test
-diff = set(file_list).difference(set(all_imgs))
-len(diff)
+# # 91 images from Flicker_8k not used in train/val/test
+# diff = set(file_list).difference(set(all_imgs))
+# len(diff)
 
 
 
@@ -52,12 +52,13 @@ len(diff)
 
 
 
-# path = "/Users/khosrow/fall2021/dl/Arabic-Image-Captioning/data/Flickr8k_text/Flickr8k.arabic.full.txt"
-# with open(path) as f:
-#     imgs = f.read().splitlines()
+path = "/Users/khosrow/fall2021/dl/Arabic-Image-Captioning/data/Flickr8k_text/Flickr8k.arabic.full.txt"
+with open(path) as f:
+    imgs = f.read().splitlines()
 
 
 def clean_caption(caption):
+    # print(caption)
     # remove diacritics (taken from the source code)
     diacritics = re.compile("""
                                          ّ    | # Tashdid
@@ -81,7 +82,9 @@ def clean_caption(caption):
 
     # remove punctuation
     punctuations = set(list('''`÷×؛<>_()*&^%][ـ،/:"؟.,'{}~¦+|!”…“–ـ'''))
-    caption = ''.join([char for char in caption if char not in punctuations])
+    # print(caption)
+    caption = ''.join([char for char in caption if char not in punctuations][::-1])
+    # print(caption)
 
     # remove non-Arabic letters
     caption = re.sub(r'[a-zA-Z]+', '', caption)
@@ -103,8 +106,7 @@ def clean_caption(caption):
 def make_capition_dict(raw_data):
     output = {}
 
-    for line in raw_data:
-        
+    for line in raw_data:        
         # get the image name and caption
         if len(line.split('\t')) < 2:
             continue
@@ -116,13 +118,13 @@ def make_capition_dict(raw_data):
         # remove the last 2 characters from the end of the image name
         image_name = image_name[:-2]
 
-        # map the image to its caption
+        # map the image to its captions
         if image_name in output:
             output[image_name].append(caption)
         else:
             output[image_name] = [caption]
 
-    print(len(output), output)
+    # print(len(output), output)
     return output
 
 make_capition_dict(imgs)
