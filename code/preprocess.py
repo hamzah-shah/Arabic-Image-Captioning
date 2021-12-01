@@ -51,8 +51,8 @@ def get_image_list(filename):
 
 
 
-
-path = "/Users/khosrow/fall2021/dl/Arabic-Image-Captioning/data/Flickr8k_text/Flickr8k.arabic.full.txt"
+path = "/Users/kanzaazhar/Desktop/cs147/Arabic-Image-Captioning/data/Flickr8k_text/Flickr8k.arabic.full.txt"
+# path = "/Users/khosrow/fall2021/dl/Arabic-Image-Captioning/data/Flickr8k_text/Flickr8k.arabic.full.txt"
 with open(path) as f:
     imgs = f.read().splitlines()
 
@@ -101,8 +101,6 @@ def clean_caption(caption):
     return caption
 
 
-
-
 def make_caption_dict(raw_data):
     output = {}
 
@@ -124,7 +122,31 @@ def make_caption_dict(raw_data):
         else:
             output[image_name] = [caption]
 
+    # print(output)
     # print(len(output), output)
     return output
 
-make_caption_dict(imgs)
+"""
+Takes in the output from make_caption_dict (which is a dictionary that maps image number/name to a list of its captions),
+and constructs a dictionary that maps each unique word in all of these captions to a word id
+
+INPUT: dictionary that maps image number/name to a list of its captions
+RETURNS: vocab dictionary which maps each unique word in the captions to an id
+"""
+def make_vocab_dict(output):
+    vocab_dict = {}
+    word_set = set()
+
+    for caption_list in output.values():
+        for caption in caption_list:
+            caption = caption[7:-6]
+            words_array = caption.strip().split()
+            word_set.update(words_array)
+            # print(word_set)
+
+    vocab_dict = {w : i for i, w in enumerate(list(word_set))}
+    # print(vocab_dict)
+
+
+output = make_caption_dict(imgs)
+make_vocab_dict(output)
