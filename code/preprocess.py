@@ -51,8 +51,8 @@ def get_image_list(filename):
 
 
 
-path = "/Users/kanzaazhar/Desktop/cs147/Arabic-Image-Captioning/data/Flickr8k_text/Flickr8k.arabic.full.txt"
-# path = "/Users/khosrow/fall2021/dl/Arabic-Image-Captioning/data/Flickr8k_text/Flickr8k.arabic.full.txt"
+# path = "/Users/kanzaazhar/Desktop/cs147/Arabic-Image-Captioning/data/Flickr8k_text/Flickr8k.arabic.full.txt"
+path = "/Users/khosrow/fall2021/dl/Arabic-Image-Captioning/data/Flickr8k_text/Flickr8k.arabic.full.txt"
 with open(path) as f:
     imgs = f.read().splitlines()
 
@@ -122,8 +122,6 @@ def make_caption_dict(raw_data):
         else:
             output[image_name] = [caption]
 
-    # print(output)
-    # print(len(output), output)
     return output
 
 """
@@ -142,11 +140,28 @@ def make_vocab_dict(output):
             caption = caption[7:-6]
             words_array = caption.strip().split()
             word_set.update(words_array)
-            # print(word_set)
 
     vocab_dict = {w : i for i, w in enumerate(list(word_set))}
-    # print(vocab_dict)
+    return vocab_dict
 
 
 output = make_caption_dict(imgs)
 make_vocab_dict(output)
+
+def tokenize_captions(output):
+    vocab_dict = make_vocab_dict(output)
+    for image in output:
+        tokenized_captions = []
+        for caption in output[image]:
+            tokenized_caption = []
+            caption = caption[7:-6]
+
+            for word in caption.split():
+                tokenized_caption.append(vocab_dict[word])
+            tokenized_captions.append(tokenized_caption)
+        output[image] = tokenized_captions
+    return output
+
+print(tokenize_captions(output))
+                
+
