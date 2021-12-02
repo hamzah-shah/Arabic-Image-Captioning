@@ -3,13 +3,13 @@ from tensorflow.keras.applications.vgg16 import VGG16
 
 
 class EndtoEnd(tf.keras.Model):
-    def __init__(self, arabic_vocab_size):
+    def __init__(self, arabic_vocab_size, embedding_size):
         self.batch_size = 1024
         self.learning_rate = 0.001
         self.optimizer = tf.keras.optimizers.Adam(self.learning_rate)
 
         self.encoder = Encoder().encoder
-        self.decoder = Decoder(vocab_size=arabic_vocab_size).decoder
+        self.decoder = Decoder(vocab_size=arabic_vocab_size, embedding_size=embedding_size).decoder
 
     def call(self, img):
         '''
@@ -58,9 +58,13 @@ class Decoder(tf.keras.Model):
     Decoder portion of the End-to-End captioning model.
     The decoder is a recurrent network, specifically an LSTM.
     '''
-    def __init__(self, vocab_size):
+    def __init__(self, vocab_size, embedding_size):
+        self.vocab_size = vocab_size
+        self.embedding_size = embedding_size
+        
+        self.embedding = tf.keras.layers.Embedding(input_dim=self.vocab_size, output_dim=self.embedding_size)
         self.decoder = tf.keras.layers.LSTM(units=256)
-        self.fc = tf.keras.layers.Dense(units=vocab_size, activation="softmax")
+        self.fc = tf.keras.layers.Dense(units=self.vocab_size, activation="softmax")
 
     def call(self, embedding):
         '''
