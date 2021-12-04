@@ -13,7 +13,8 @@ def get_image_list(filename):
     assert(len(imgs) == len(set(imgs))) # no image listed more than once
     return imgs
 
-def prep_data(file, image_list):
+
+def prep_data(file, image_list, txt_filename):
     data = pd.read_csv(file, header=None, delimiter="\t", on_bad_lines="skip", names=["image_caption", "caption"])
     data['image'] = data['image_caption'].str[:-2]
     
@@ -30,7 +31,7 @@ def prep_data(file, image_list):
     data = data.drop(columns=['image'])
     # data['caption'] = data['caption'].str[::-1] // note the difference between whats printed out vs whats in the file
 
-    data.to_csv(os.path.join(ROOT, "data/Flickr8k_text", "test.txt"), sep="\t", header=False, index=False)
+    data.to_csv(os.path.join(ROOT, "data/Flickr8k_text", txt_filename), sep="\t", header=False, index=False)
 
     # print(data)
 
@@ -58,7 +59,7 @@ if __name__ == "__main__":
 
     # TODO: construct vocab & lemmatize captions for only those images who are in train, val or test (exclude the 91 not used)
     data_file = os.path.join(ROOT, "data/Flickr8k_text", "Flickr8k.arabic.full.txt")
-    prep_data(data_file, all_imgs)
+    prep_data(data_file, all_imgs, "test.txt")
     exit()
     vocab, tokenized_captions = get_data(data_file)
     # exit()
