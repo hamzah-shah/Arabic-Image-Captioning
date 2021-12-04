@@ -1,5 +1,29 @@
-import os
+import tensorflow as tf
+from tensorflow.keras.preprocessing import image
 import re
+
+VGG16_IMG_SIZE = (224,224)
+
+def show_image(file):
+    import os
+    import matplotlib.pyplot as plt
+    import matplotlib.image as mpimg
+    ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    path = os.path.join(ROOT, "data/Flicker8k_Dataset", "469029994_349e138606.jpg")
+    img = mpimg.imread(path)
+    imgplot = plt.imshow(img)
+    plt.show()
+
+def preprocess_image(img):
+    '''
+    Preprocesses an image according to VGG16 preprocessing.
+    :param image: image to be processed
+    :return image: VGG16 processed image
+    '''
+    img = image.img_to_array(image.load_img(img, target_size=VGG16_IMG_SIZE))
+    return tf.keras.applications.vgg16.preprocess_input(img)
+
+
 
 START_TOKEN = "<start>"
 END_TOKEN = "<end>"
@@ -57,9 +81,16 @@ def make_caption_dict(raw_data):
     '''
     output = {}
 
+    # print(len(raw_data))
+    counter = 0
     for line in raw_data:        
         # get the image name and caption
         if len(line.split('\t')) < 2:
+            # print(counter)
+            # print(line)
+
+            # TODO: the one line that errors is a leftover caption from the last line
+            # we need to append this leftover caption to the caption from the last line
             continue
         image_name, caption = line.split('\t')
 
@@ -74,7 +105,11 @@ def make_caption_dict(raw_data):
             output[image_name].append(caption)
         else:
             output[image_name] = [caption]
+        
+        counter += 1
 
+    # print(counter)
+    # print(len(output))
     return output
 
 
@@ -127,11 +162,10 @@ def get_data(file):
     with open(file) as f:
         imgs = f.read().splitlines()
     
+    # print(imgs)
+    
     caption_dict = make_caption_dict(imgs)
     vocabulary = make_vocab_dict(caption_dict)
     tokenized_captions = tokenize_captions(caption_dict, vocabulary)
 
     return vocabulary, tokenized_captions
-
-                    
-
