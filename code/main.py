@@ -28,9 +28,11 @@ def prep_data(file, image_list):
 
     data = data[data['image'].isin(image_list)]
     data = data.drop(columns=['image'])
-    data['caption'] = data['caption'].str[::-1]
+    # data['caption'] = data['caption'].str[::-1] // note the difference between whats printed out vs whats in the file
 
-    print(data)
+    data.to_csv(os.path.join(ROOT, "data/Flickr8k_text", "test.txt"), sep="\t", header=False, index=False)
+
+    # print(data)
 
     
 
