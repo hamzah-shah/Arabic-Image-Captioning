@@ -155,6 +155,8 @@ def tokenize_captions(output, vocab):
     return output
 
 
+
+
 def get_data(file):
     '''
     Returns 1) arabic vocabulary, 2) dict mapping image to list of its tokenized captions
