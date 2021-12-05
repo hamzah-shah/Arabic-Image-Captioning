@@ -135,7 +135,7 @@ if __name__ == "__main__":
     # prep_data(data_file, all_imgs, "test.txt")
     vocab, tokenized_captions = get_data(data_file)
 
-    encoder, decoder = Encoder(), Decoder()
+    encoder, decoder = Encoder(), Decoder(len(vocab))
     
     image_features = get_features(model=encoder, image_list=all_imgs)
     I_train, X_train, Y_train, I_val, X_val, Y_val, I_test, X_test, Y_test = split_data(tokenized_captions, image_features, train_imgs, val_imgs, test_imgs, len(vocab))

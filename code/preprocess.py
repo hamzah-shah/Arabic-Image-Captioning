@@ -25,8 +25,9 @@ def preprocess_image(img):
 
 
 
-START_TOKEN = "<start>"
-END_TOKEN = "<end>"
+START_TOKEN = "<START>"
+END_TOKEN = "<END>"
+PAD_TOKEN = "<PAD>"
 SPACE = " "
 
 
@@ -105,7 +106,7 @@ def make_caption_dict(raw_data):
     return output
 
 
-def make_vocab_dict(output):
+def make_vocab_dict(capt_dict):
     '''
     Takes in the output from make_caption_dict() and constructs a dictionary 
     that maps each unique word in all of these captions to a word id.
@@ -117,13 +118,13 @@ def make_vocab_dict(output):
     vocab_dict = {}
     word_set = set()
 
-    for caption_list in output.values():
+    for caption_list in capt_dict.values():
         for caption in caption_list:
-            caption = caption[len(START_TOKEN) + len(SPACE) : - len(END_TOKEN) - len(SPACE)]
             words_array = caption.strip().split()
             word_set.update(words_array)
 
-    vocab_dict = {w : i for i, w in enumerate(list(word_set))}
+    vocab_dict = {w : i + 1 for i, w in enumerate(list(word_set))} # add 1 to all inidices to reserve index 0 for PAD_TOKEN
+    vocab_dict[PAD_TOKEN] = 0
     return vocab_dict
 
 
@@ -138,14 +139,12 @@ def tokenize_captions(output, vocab):
         tokenized_captions = []
         for caption in output[image]:
             tokenized_caption = []
-            caption = caption[len(START_TOKEN) + len(SPACE) : - len(END_TOKEN) - len(SPACE)]
 
             for word in caption.split():
                 tokenized_caption.append(vocab[word])
             tokenized_captions.append(tokenized_caption)
         output[image] = tokenized_captions
     return output
-
 
 
 
