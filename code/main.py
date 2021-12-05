@@ -2,8 +2,8 @@ import os
 import pandas as pd
 import numpy as np
 import tensorflow as tf
-from preprocess import get_data
-from model import EndtoEnd
+from preprocess import get_data, preprocess_image
+from model import Encoder, Decoder
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_FILE = "all_data.txt"
@@ -37,10 +37,11 @@ def prep_data(file, image_list, txt_filename):
     data.to_csv(prepped_data_path, sep="\t", header=False, index=False)
     return prepped_data_path
 
-def split_data(img_to_captions, train_list, val_list, test_list, vocab_size, max_len=20):
+def split_data(img_to_captions, img_to_feats, train_list, val_list, test_list, vocab_size, max_len=20):
     '''
     Prepares the data to be passed into the model.
     :param img_to_captions: dictionary mapping each image to a list of captions
+    :param img_to_feats: dictionary mapping each image to a 4096-dim feature vector
     :param train_list: list of images in training set 
     :param val_list: list of images in validaton set
     :param test_list: list of images in test set
@@ -48,15 +49,16 @@ def split_data(img_to_captions, train_list, val_list, test_list, vocab_size, max
     :param max_len: the maximum length of a caption
     :returns X_train, Y_train, X_val, Y_val, X_test, Y_test
     '''
-    X_train, Y_train = [], []
-    X_val, Y_val = [], []
-    X_test, Y_test = [], []
+    image_train, X_train, Y_train = [], [], []
+    image_val, X_val, Y_val = [], [], []
+    image_test, X_test, Y_test = [], [], []
 
-    def split_helper(X, Y):
+    def split_helper(I, X, Y):
         captions = img_to_captions[image]
         for cap in captions:
             # loop through it -> pad its input & one-hot its output
             for ind in range(len(cap)):
+                I.append(img_to_feats[image])
                 input, output = cap[:ind], cap[ind]
                 input = tf.keras.preprocessing.sequence.pad_sequences([input], maxlen=max_len, padding='post')[0] # taken from source code
                 output = tf.one_hot(output, depth=vocab_size)
@@ -65,11 +67,11 @@ def split_data(img_to_captions, train_list, val_list, test_list, vocab_size, max
 
     for image in img_to_captions:
         if image in train_list:
-            split_helper(X_train, Y_train)
+            split_helper(image_train, X_train, Y_train)
         elif image in val_list:
-            split_helper(X_val, Y_val)
+            split_helper(image_val, X_val, Y_val)
         elif image in test_list:
-            split_helper(X_test, Y_test)
+            split_helper(image_test, X_test, Y_test)
         else:
             ValueError("Image must be in one of the lists")
 
@@ -77,14 +79,42 @@ def split_data(img_to_captions, train_list, val_list, test_list, vocab_size, max
     assert(len(X_val) == len(Y_val))
     assert(len(X_test) == len(Y_test))
 
-    return np.array(X_train), np.array(Y_train), np.array(X_val), np.array(Y_val), np.array(X_test), np.array(Y_test)
+    return np.array(image_train), np.array(X_train), np.array(Y_train), np.array(image_val), np.array(X_val), np.array(Y_val), \
+            np.array(image_test), np.array(X_test), np.array(Y_test)
 
-    
+
+def get_features(model, image_list):
+    '''
+    Creates a map from each image to its features extracted from the Encoder model.
+    :param model: the encoder model used to get features
+    :param image_list: list of all images
+    '''
+    feat_map = {}
+    for image in image_list:
+        processed_image = preprocess_image(os.path.join(IMAGE_DIR, image))
+        feat_map[image] = model(processed_image)
+    return feat_map
+
+def train(model, input_image, input_text, label_text):
+    '''
+    Trains the decoder model.
+    :param model: decoder model
+    :param input_image
+    :param input_text
+    :param label_text
+    '''
+    model.compile(optimizer=model.optimizer, loss=model.loss)
+    model.fit(x=[input_image, input_text], y=label_text, batch_size=model.batch_size, epochs=5)
+
+
 
 if __name__ == "__main__":
+    # TODO: STOP and PAD should be in vocabulary
     train_imgs = get_image_list("Flickr_8k.trainImages.txt") # 6000
     val_imgs = get_image_list("Flickr_8k.devImages.txt") # 1000
     test_imgs = get_image_list("Flickr_8k.testImages.txt") # 1000
+
+    IMAGE_DIR = os.path.join(ROOT, "data/Flicker8k_Dataset")
 
 
     # 8000 images
@@ -101,17 +131,15 @@ if __name__ == "__main__":
     len(diff)
 
 
-    # TODO: construct vocab & lemmatize captions for only those images who are in train, val or test (exclude the 91 not used)
     data_file = os.path.join(ROOT, "data/Flickr8k_text", "Flickr8k.arabic.full.txt")
-    prep_data(data_file, all_imgs, "test.txt")
-    exit()
+    # prep_data(data_file, all_imgs, "test.txt")
     vocab, tokenized_captions = get_data(data_file)
-    # exit()
 
-    split_data(tokenized_captions, train_imgs, val_imgs, test_imgs, len(vocab))
+    encoder, decoder = Encoder(), Decoder()
     
-    # print(f'Vocab size: {len(vocab)}') # TODO: vocab size is only 10,700 - isn't that small considering there are 8091 images?
-    # print(f'Number of images: {len(tokenized_captions)}')
+    image_features = get_features(model=encoder, image_list=all_imgs)
+    I_train, X_train, Y_train, I_val, X_val, Y_val, I_test, X_test, Y_test = split_data(tokenized_captions, image_features, train_imgs, val_imgs, test_imgs, len(vocab))
 
-    # initialize model
-    model = EndtoEnd(arabic_vocab_size=len(vocab))
+    train(decoder, I_train, X_train, Y_train)
+    
+    
