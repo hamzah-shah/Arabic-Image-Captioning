@@ -47,8 +47,10 @@ class Decoder():
 
         self.image_embeddings = Dense(units=256, activation="tanh") (self.input_image)
 
+
         self.text_embeddings = Embedding(input_dim=self.vocab_size, output_dim=self.embedding_size) (self.input_text)
-        self.lstm = LSTM(units=256, initial_state=self.image_embeddings) (self.text_embeddings)
-        self.output = Dense(units=vocab_size, activation="softmax") (self.lstm)
+        self.lstm = LSTM(units=256, stateful=True)
+        self.lstm_outputs = self.lstm(self.text_embeddings, initial_state=self.image_embeddings)
+        self.output = Dense(units=vocab_size, activation="softmax") (self.lstm_outputs)
 
         self.decoder = tf.keras.Model(inputs=[self.input_image, self.input_text], outputs=self.output)
