@@ -101,6 +101,7 @@ def get_features(model, image_list):
     
     features = model(processed_images)
     print(f'FEAT EXTRACTED IMAGES SHAPE: {features.shape}')
+    exit()
     return feat_map
 
 def train(model, input_image, input_text, label_text):
