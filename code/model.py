@@ -1,33 +1,6 @@
 import tensorflow as tf
 from tensorflow.keras.applications.vgg16 import VGG16
-
-
-class EndtoEnd(tf.keras.Model):
-    def __init__(self, arabic_vocab_size):
-        super(EndtoEnd, self).__init__()
-        
-        self.vocab_size = arabic_vocab_size
-        self.batch_size = 1024
-        self.learning_rate = 0.001
-        self.optimizer = tf.keras.optimizers.Adam(self.learning_rate)
-        self.embedding_size = 300
-
-        self.embedding = tf.keras.layers.Embedding(input_dim=self.vocab_size, output_dim=self.embedding_size)
-        self.encoder = Encoder().encoder
-        self.decoder = Decoder(vocab_size=self.vocab_size).decoder
-
-    def call(self, img):
-        '''
-        :param img: image to be encoded
-        :return prbs: the probabilities of each word in the vocab
-        '''
-        return self.decoder(self.encoder(img))
-
-    def loss_function(self):
-        pass
-
-    def accuracy(self):
-        pass
+from tensorflow.keras.layers import Input, Embedding, LSTM, Dense
 
 
 class Encoder(tf.keras.Model):
@@ -46,12 +19,6 @@ class Encoder(tf.keras.Model):
             layer.trainable = False
             self.encoder.add(layer)
 
-        self.fc3_units = 256
-        
-        # manually add last layer
-        self.fc3 = tf.keras.layers.Dense(units=self.fc3_units, activation="tanh", name="fc3") # TODO: how to train the weights of this last layer?
-        self.encoder.add(self.fc3)
-
     def call(self, img):
         '''
         :param img: image to be encoded
@@ -60,22 +27,28 @@ class Encoder(tf.keras.Model):
         return self.encoder(img)
 
 
-class Decoder(tf.keras.Model):
-    # TODO: figure out window size
+class Decoder():
     '''
     Decoder portion of the End-to-End captioning model.
     The decoder is a recurrent network, specifically an LSTM.
     '''
     def __init__(self, vocab_size):
-        super(Decoder, self).__init__()
+        self.batch_size = 1024
+        self.learning_rate = 0.001
+        self.optimizer = tf.keras.optimizers.Adam(self.learning_rate)
+        self.loss = tf.keras.losses.CategoricalCrossentropy()
+        
+        self.vocab_size = vocab_size
+        self.embedding_size = 300
 
-        self.decoder = tf.keras.layers.LSTM(units=256)
-        self.fc = tf.keras.layers.Dense(units=vocab_size, activation="softmax")
+        self.input_image = Input((4096,)) # 4096 = output of VGG16 last layer
+        self.input_text = Input((20,)) # 20 = maxlen
 
-    def call(self, embedding):
-        '''
-        :param embedding: image embedding outputted by the encoder
-        :return prbs: the probabilities of each word in the vocab
-        '''
-        decoded = self.decoder(embedding)
-        return self.fc(decoded)
+
+        self.image_embeddings = Dense(units=256, activation="tanh") (self.input_image)
+
+        self.text_embeddings = Embedding(input_dim=self.vocab_size, output_dim=self.embedding_size) (self.input_text)
+        self.lstm = LSTM(units=256, initial_state=self.image_embeddings) (self.text_embeddings)
+        self.output = Dense(units=vocab_size, activation="softmax") (self.lstm)
+
+        self.decoder = tf.keras.Model(inputs=[self.input_image, self.input_text], outputs=self.output)

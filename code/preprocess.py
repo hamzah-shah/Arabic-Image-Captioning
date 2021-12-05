@@ -81,13 +81,9 @@ def make_caption_dict(raw_data):
     '''
     output = {}
 
-    # print(len(raw_data))
-    counter = 0
     for line in raw_data:        
         # get the image name and caption
         if len(line.split('\t')) < 2:
-            # print(counter)
-            # print(line)
 
             # TODO: the one line that errors is a leftover caption from the last line
             # we need to append this leftover caption to the caption from the last line
@@ -105,11 +101,7 @@ def make_caption_dict(raw_data):
             output[image_name].append(caption)
         else:
             output[image_name] = [caption]
-        
-        counter += 1
 
-    # print(counter)
-    # print(len(output))
     return output
 
 
@@ -162,11 +154,9 @@ def get_data(file):
     Returns 1) arabic vocabulary, 2) dict mapping image to list of its tokenized captions
     '''
     with open(file) as f:
-        imgs = f.read().splitlines()
+        data = f.read().splitlines()
     
-    # print(imgs)
-    
-    caption_dict = make_caption_dict(imgs)
+    caption_dict = make_caption_dict(data)
     vocabulary = make_vocab_dict(caption_dict)
     tokenized_captions = tokenize_captions(caption_dict, vocabulary)
 
