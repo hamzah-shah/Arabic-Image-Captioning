@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow.keras.applications.vgg16 import VGG16
-from tensorflow.keras.layers import Input, Embedding, LSTM, Dense
+from tensorflow.keras.layers import Input, Embedding, LSTM, Dense, GRU
 
 
 class Encoder(tf.keras.Model):
@@ -19,12 +19,12 @@ class Encoder(tf.keras.Model):
             layer.trainable = False
             self.encoder.add(layer)
 
-    def call(self, img):
+    def call(self, imgs):
         '''
-        :param img: image to be encoded
-        :return embedding: a 256 dimensional embedding of the image
+        :param imgs: batch of images to be encoded
+        :return embedding: a 4096 dimensional embedding of each image
         '''
-        return self.encoder(img)
+        return self.encoder(imgs)
 
 
 class Decoder():
@@ -41,16 +41,20 @@ class Decoder():
         self.vocab_size = vocab_size
         self.embedding_size = 300
 
-        self.input_image = Input((4096,)) # 4096 = output of VGG16 last layer
-        self.input_text = Input((20,)) # 20 = maxlen
+        self.input_image = Input(shape=(4096,), batch_size=self.batch_size) # 4096 = output of VGG16 last layer
+        self.input_text = Input(shape=(20,), batch_size=self.batch_size) # 20 = maxlen
 
 
         self.image_embeddings = Dense(units=256, activation="tanh") (self.input_image)
+        print(f'Image embedding shape: {tf.shape(self.image_embeddings)}')
 
 
         self.text_embeddings = Embedding(input_dim=self.vocab_size, output_dim=self.embedding_size) (self.input_text)
-        self.lstm = LSTM(units=256, stateful=True)
-        self.lstm_outputs = self.lstm(self.text_embeddings, initial_state=self.image_embeddings)
-        self.output = Dense(units=vocab_size, activation="softmax") (self.lstm_outputs)
+        print(f'Text embedding shape: {tf.shape(self.text_embeddings)}')
+        self.gru = GRU(units=256, stateful=True)
+        self.gru_outputs = self.gru(self.text_embeddings, initial_state=self.image_embeddings)
+        print(f'LSTM outputs: {tf.shape(self.gru_outputs)}')
+        self.output = Dense(units=vocab_size, activation="softmax") (self.gru_outputs)
+        print(f'Dense outputs: {tf.shape(self.output)}')
 
         self.decoder = tf.keras.Model(inputs=[self.input_image, self.input_text], outputs=self.output)

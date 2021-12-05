@@ -57,6 +57,7 @@ def split_data(img_to_captions, img_to_feats, train_list, val_list, test_list, v
         captions = img_to_captions[image]
         for cap in captions:
             # loop through it -> pad its input & one-hot its output
+            # print(f'CAPTION: {cap}')
             for ind in range(len(cap)):
                 I.append(img_to_feats[image])
                 input, output = cap[:ind], cap[ind]
@@ -89,10 +90,17 @@ def get_features(model, image_list):
     :param model: the encoder model used to get features
     :param image_list: list of all images
     '''
+    num_images = len(image_list)
+    processed_images = []
     feat_map = {}
     for image in image_list:
         processed_image = preprocess_image(os.path.join(IMAGE_DIR, image))
-        feat_map[image] = model(processed_image)
+        processed_images.append(processed_image)
+    processed_images = np.array(processed_images)
+    print(f'PROCESSED IMAGES SHAPE: {processed_images.shape}')
+    
+    features = model(processed_images)
+    print(f'FEAT EXTRACTED IMAGES SHAPE: {features.shape}')
     return feat_map
 
 def train(model, input_image, input_text, label_text):
@@ -137,9 +145,15 @@ if __name__ == "__main__":
 
     encoder, decoder = Encoder(), Decoder(len(vocab))
     
+    print('before getting features')
     image_features = get_features(model=encoder, image_list=all_imgs)
+    print('after getting features, before splitting data')
     I_train, X_train, Y_train, I_val, X_val, Y_val, I_test, X_test, Y_test = split_data(tokenized_captions, image_features, train_imgs, val_imgs, test_imgs, len(vocab))
+    print('after splitting data')
 
+    print(f'I_TRAIN SHAPE: {I_train.shape}')
+    print(f'I_TRAIN SHAPE: {X_train.shape}')
+    print(f'I_TRAIN SHAPE: {Y_train.shape}')
     train(decoder, I_train, X_train, Y_train)
     
     
