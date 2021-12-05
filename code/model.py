@@ -13,7 +13,7 @@ class Encoder(tf.keras.Model):
         super(Encoder, self).__init__()
         
         self.encoder = tf.keras.Sequential()
-        # load pre-trained VGG16 model, excluding last layer
+        # load pre-trained VGG16 model, excluding classifier layer
         vgg16 = VGG16(weights='imagenet')
         for layer in vgg16.layers[:-1]:
             layer.trainable = False
