@@ -1,7 +1,10 @@
 import tensorflow as tf
+import os
 from tensorflow.keras.applications.vgg16 import VGG16
 from tensorflow.keras.layers import Input, Embedding, LSTM, Dense, GRU
 
+# Killing optional CPU driver warnings
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 class Encoder(tf.keras.Model):
     '''
