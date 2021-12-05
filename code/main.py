@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import numpy as np
+import pickle
 import tensorflow as tf
 from preprocess import get_data, preprocess_image
 from model import Encoder, Decoder
@@ -101,6 +102,9 @@ def get_features(model, image_list):
     
     features = model(processed_images)
     print(f'FEAT EXTRACTED IMAGES SHAPE: {features.shape}')
+    
+    with open(os.path.join(ROOT, 'features.pickle'), 'wb') as file:
+        pickle.dump(features, file)
     exit()
     return feat_map
 
