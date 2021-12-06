@@ -27,7 +27,8 @@ class Encoder(tf.keras.Model):
         :param imgs: batch of images to be encoded
         :return embedding: a 4096 dimensional embedding of each image
         '''
-        return self.encoder(imgs)
+        # return self.encoder(imgs)
+        return self.encoder(tf.expand_dims(imgs, axis=0))
 
 
 class Decoder():

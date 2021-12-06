@@ -159,4 +159,12 @@ def get_data(file):
     vocabulary = make_vocab_dict(caption_dict)
     tokenized_captions = tokenize_captions(caption_dict, vocabulary)
 
+    # ## TOKEN SANITY CHECKS
+    # print(f'START TOKEN INDEX: {vocabulary[START_TOKEN]}')
+    # print(f'END TOKEN INDEX: {vocabulary[END_TOKEN]}')
+    # print(f'PAD TOKEN INDEX: {vocabulary[PAD_TOKEN]}')
+
+    # import random
+    # print(f'RANDOM CAPTION: {random.choice(list(tokenized_captions.values()))}')
+
     return vocabulary, tokenized_captions
