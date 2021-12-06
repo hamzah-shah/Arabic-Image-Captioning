@@ -50,24 +50,38 @@ def split_data(img_to_captions, img_to_feats, train_list, val_list, test_list, v
     :param max_len: the maximum length of a caption
     :returns X_train, Y_train, X_val, Y_val, X_test, Y_test
     '''
-    image_train, X_train, Y_train = [], [], []
-    image_val, X_val, Y_val = [], [], []
-    image_test, X_test, Y_test = [], [], []
-
     def split_helper(I, X, Y):
         captions = img_to_captions[image]
         for cap in captions:
             # loop through it -> pad its input & one-hot its output
-            # print(f'CAPTION: {cap}')
-            for ind in range(len(cap)):
+            for ind in range(1, (len(cap))):
+                # print("A")
                 I.append(img_to_feats[image])
+                # print("B")
                 input, output = cap[:ind], cap[ind]
+                # print("C")
                 input = tf.keras.preprocessing.sequence.pad_sequences([input], maxlen=max_len, padding='post')[0] # taken from source code
+                # print("D")
                 output = tf.one_hot(output, depth=vocab_size)
+                # print("E")
                 X.append(input)
                 Y.append(output)
+                # print(f'INDEX: {ind}')
 
+
+    image_train, X_train, Y_train = [], [], []
+    image_val, X_val, Y_val = [], [], []
+    image_test, X_test, Y_test = [], [], []
+
+    counter = 0
     for image in img_to_captions:
+        print(f'COUNTER: {counter}')
+        # print(f'Image: {image}')
+        # print(f'Caps: {img_to_captions[image]}')
+
+        # if counter == 50:
+        #     break
+
         if image in train_list:
             split_helper(image_train, X_train, Y_train)
         elif image in val_list:
@@ -75,14 +89,29 @@ def split_data(img_to_captions, img_to_feats, train_list, val_list, test_list, v
         elif image in test_list:
             split_helper(image_test, X_test, Y_test)
         else:
-            ValueError("Image must be in one of the lists")
+            # ValueError("Image must be in one of the lists")
+            print("Image must be in one of the lists")
+        counter += 1
+    # print('broke')
 
     assert(len(X_train) == len(Y_train))
     assert(len(X_val) == len(Y_val))
     assert(len(X_test) == len(Y_test))
+    print('after assertion')
 
-    return np.array(image_train), np.array(X_train), np.array(Y_train), np.array(image_val), np.array(X_val), np.array(Y_val), \
-            np.array(image_test), np.array(X_test), np.array(Y_test)
+    # print(f'IMAGE_TRAIN: {image_train}')
+    # print(f'X_TRAIN: {X_train}')
+    # print(f'Y_TRAIN: {Y_train}')
+
+    # print(f'IMAGE_VAL: {image_val}')
+    # print(f'X_VAL: {X_val}')
+    # print(f'Y_VAL: {Y_val}')
+
+    # print(f'IMAGE_TEST: {image_test}')
+    # print(f'X_TEST: {X_test}')
+    # print(f'Y_TEST: {Y_test}')
+
+    return np.array(image_train), np.array(X_train), np.array(Y_train), np.array(image_val), np.array(X_val), np.array(Y_val), np.array(image_test), np.array(X_test), np.array(Y_test)
 
 
 def get_features(model, image_list):
@@ -91,21 +120,10 @@ def get_features(model, image_list):
     :param model: the encoder model used to get features
     :param image_list: list of all images
     '''
-    num_images = len(image_list)
-    processed_images = []
     feat_map = {}
     for image in image_list:
         processed_image = preprocess_image(os.path.join(IMAGE_DIR, image))
-        processed_images.append(processed_image)
-    processed_images = np.array(processed_images)
-    print(f'PROCESSED IMAGES SHAPE: {processed_images.shape}')
-    
-    features = model(processed_images)
-    print(f'FEAT EXTRACTED IMAGES SHAPE: {features.shape}')
-    
-    with open(os.path.join(ROOT, 'features.pickle'), 'wb') as file:
-        pickle.dump(features, file)
-    exit()
+        feat_map[image] = model(processed_image)
     return feat_map
 
 def train(model, input_image, input_text, label_text):
@@ -148,17 +166,33 @@ if __name__ == "__main__":
     # prep_data(data_file, all_imgs, "test.txt")
     vocab, tokenized_captions = get_data(data_file)
 
-    encoder, decoder = Encoder(), Decoder(len(vocab))
+    FEATURES_FILE = os.path.join(ROOT, 'data/features.pickle')
+
+    # try to load already saved pickle file
+        # if doesn't work -> call encoder and get features
+    image_features = None
+    try:
+        print('loading image features')
+        with open(FEATURES_FILE, 'rb') as file:
+            image_features = pickle.load(file)
+    except:
+        encoder = Encoder()
+        print('before getting features')
+        image_features = get_features(model=encoder, image_list=all_imgs)
+        with open(FEATURES_FILE, 'wb') as file:
+            pickle.dump(image_features, file)
+        print('after getting features, before splitting data')
     
-    print('before getting features')
-    image_features = get_features(model=encoder, image_list=all_imgs)
-    print('after getting features, before splitting data')
+    assert(image_features is not None)
+    
+    print("before splitting data")
     I_train, X_train, Y_train, I_val, X_val, Y_val, I_test, X_test, Y_test = split_data(tokenized_captions, image_features, train_imgs, val_imgs, test_imgs, len(vocab))
     print('after splitting data')
 
     print(f'I_TRAIN SHAPE: {I_train.shape}')
     print(f'I_TRAIN SHAPE: {X_train.shape}')
     print(f'I_TRAIN SHAPE: {Y_train.shape}')
+    decoder = Decoder(vocab_size=len(vocab))
     train(decoder, I_train, X_train, Y_train)
     
     
