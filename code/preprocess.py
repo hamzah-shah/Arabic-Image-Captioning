@@ -4,15 +4,15 @@ import re
 
 VGG16_IMG_SIZE = (224,224)
 
-def show_image(file):
-    import os
-    import matplotlib.pyplot as plt
-    import matplotlib.image as mpimg
-    ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    path = os.path.join(ROOT, "data/Flicker8k_Dataset", "469029994_349e138606.jpg")
-    img = mpimg.imread(path)
-    imgplot = plt.imshow(img)
-    plt.show()
+# def show_image(file):
+#     import os
+#     import matplotlib.pyplot as plt
+#     import matplotlib.image as mpimg
+#     ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+#     path = os.path.join(ROOT, "data/Flicker8k_Dataset", "469029994_349e138606.jpg")
+#     img = mpimg.imread(path)
+#     imgplot = plt.imshow(img)
+#     plt.show()
 
 def preprocess_image(img):
     '''
@@ -32,7 +32,6 @@ SPACE = " "
 
 
 def clean_caption(caption):
-    # print(caption)
     # remove diacritics (taken from the source code)
     diacritics = re.compile("""
                                          ّ    | # Tashdid
@@ -85,7 +84,6 @@ def make_caption_dict(raw_data):
     for line in raw_data:        
         # get the image name and caption
         if len(line.split('\t')) < 2:
-
             # TODO: the one line that errors is a leftover caption from the last line
             # we need to append this leftover caption to the caption from the last line
             continue
@@ -94,7 +92,7 @@ def make_caption_dict(raw_data):
         # clean the caption
         caption = clean_caption(caption)
 
-        # remove the last 2 characters from the end of the image name
+        # remove the last 2 characters (which denote caption number) from the end of the image name
         image_name = image_name[:-2]
 
         # map the image to its captions
