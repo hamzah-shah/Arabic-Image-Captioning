@@ -29,6 +29,7 @@ START_TOKEN = "<START>"
 END_TOKEN = "<END>"
 PAD_TOKEN = "<PAD>"
 SPACE = " "
+MAXLEN = 20
 
 
 def clean_caption(caption):
@@ -67,10 +68,7 @@ def clean_caption(caption):
 
     # add start and end tokens
     caption = START_TOKEN + SPACE + caption + SPACE + END_TOKEN
-
-    # pad short captions with special token to ensure similar length captions
-    # TODO
-
+    
     return caption
 
 
@@ -126,7 +124,7 @@ def make_vocab_dict(capt_dict):
     return vocab_dict
 
 
-def tokenize_captions(output, vocab):
+def tokenize_pad_captions(output, vocab):
     '''
     Tokenizes all captions.
     :param output: dictionary mapping each image to its captions (the output from make_caption_dict())
@@ -137,32 +135,23 @@ def tokenize_captions(output, vocab):
         tokenized_captions = []
         for caption in output[image]:
             tokenized_caption = []
-
             for word in caption.split():
                 tokenized_caption.append(vocab[word])
             tokenized_captions.append(tokenized_caption)
-        output[image] = tokenized_captions
+        padded_captions = tf.keras.preprocessing.sequence.pad_sequences(tokenized_captions, maxlen=MAXLEN, padding='post')
+        output[image] = padded_captions
     return output
-
 
 
 def get_data(file):
     '''
-    Returns 1) arabic vocabulary, 2) dict mapping image to list of its tokenized captions
+    Returns 1) arabic vocabulary, 2) dict mapping image to list of its tokenized captions, 3) index of the pad token
     '''
     with open(file) as f:
         data = f.read().splitlines()
     
     caption_dict = make_caption_dict(data)
     vocabulary = make_vocab_dict(caption_dict)
-    tokenized_captions = tokenize_captions(caption_dict, vocabulary)
+    img2caps = tokenize_pad_captions(caption_dict, vocabulary)
 
-    # ## TOKEN SANITY CHECKS
-    # print(f'START TOKEN INDEX: {vocabulary[START_TOKEN]}')
-    # print(f'END TOKEN INDEX: {vocabulary[END_TOKEN]}')
-    # print(f'PAD TOKEN INDEX: {vocabulary[PAD_TOKEN]}')
-
-    # import random
-    # print(f'RANDOM CAPTION: {random.choice(list(tokenized_captions.values()))}')
-
-    return vocabulary, tokenized_captions
+    return vocabulary, img2caps
