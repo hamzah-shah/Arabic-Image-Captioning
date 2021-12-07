@@ -85,23 +85,14 @@ def train(model_class, image_inputs, text_inputs, text_labels):
     :param text_labels
     :param pad_index
     '''
-    # TODO: DON"T RUN THIS - code up k_ross_validate() and run that instead
-        # we're saving this function for after we're done k_cross validating
+    
     decoder = model_class.get_model()
     decoder.compile(optimizer=model_class.optimizer, loss=model_class.loss)
+    # TODO: add a validation split in decoder.fit so we print out loss for both training and validation
     decoder.fit(x=[image_inputs, text_inputs], y=text_labels, batch_size=model_class.batch_size, epochs=5)
 
     # TODO: add a callback in decoder.fit to print out BlEU score
 
-
-def k_cross_validate():
-    # TODO: create K folds
-        # loop thru each fold
-            # split all training data into train & validation
-            # compile & fit a NEW model for each iteration
-                # print out train & val loss
-                    #  callback to print out BLEU score
-    pass
 
 
 def test():
@@ -146,8 +137,10 @@ if __name__ == "__main__":
     print(f'Xtest {Xtest.shape}')
     print(f'Ytest {Ytest.shape}')
     
-    k_cross_validate() # TODO: implement this
+
     train(Decoder(vocab_size=len(vocab)), Itrain, Xtrain, Ytrain)
-    test() # TODO: implement this
+    # test() # TODO: implement test, but don't call it
+
+    # TODO: make a function to plot loss and BLEU for both training and testing
     
     
