@@ -153,5 +153,6 @@ def get_data(file):
     caption_dict = make_caption_dict(data)
     vocabulary = make_vocab_dict(caption_dict)
     img2caps = tokenize_pad_captions(caption_dict, vocabulary)
+    
 
-    return vocabulary, img2caps
+    return vocabulary, img2caps, caption_dict
