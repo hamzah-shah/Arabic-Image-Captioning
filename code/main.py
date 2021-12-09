@@ -5,6 +5,7 @@ import pickle
 from preprocess import get_data, preprocess_image
 from model import Encoder, Decoder
 from bleu import BleuCallback
+from bleu import *
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 IMAGE_DIR = os.path.join(ROOT, "data/Flicker8k_Dataset")
@@ -86,7 +87,7 @@ def train(model_class, model, image_inputs, text_inputs, text_labels):
 
 
 
-def test(model, img_to_feats, testing_images, id2word):
+def test(model, img_to_feats, testing_images, img2caps):
     '''
     Tests the decoder model using greedy search.
     :param model
@@ -96,28 +97,30 @@ def test(model, img_to_feats, testing_images, id2word):
     img2prediction = {}
     for img in testing_images:
         feat_vector = img_to_feats[img]
-        predicted_caption = predict_caption(model, feat_vector, id2word)
+        predicted_caption = predict_caption(model, feat_vector)
         img2prediction[img] = predicted_caption
     
-
-    
     # TODO: BLEU stuff
+    one_gram_mean, two_gram_mean, three_gram_mean, four_gram_mean = bleu_score(testing_images, img2caps, img2prediction)
+
+    print('one_gram: ' + str(one_gram_mean), 'two_gram: '+ str(two_gram_mean), 'three_gram: ' + str(three_gram_mean), 'four_gram: ' + str(three_gram_mean))
 
 
 
-def predict_caption(model, image_feats, id_to_word):
+
+
+def predict_caption(model, image_feats):
     '''
     Given a trained model and an encoded image features, returns a predicted caption.
     :param model
     :param image_feats: an feature vector that encodes an image
-    return predicted caption in word form
+    return predicted caption
     '''
     cap = START_TOKEN
     for _ in MAXLEN:
         padded_cap = tf.keras.preprocessing.sequence.pad_sequences([cap], maxlen=MAXLEN, padding='post')
         next_word_dist = model.predict(x=[image_feats, padded_cap])
-        next_word_token = tf.argmax(next_word_dist)
-        next_word = id_to_word[next_word_token]
+        next_word = tf.argmax(next_word_dist)
         cap = cap + SPACE + next_word
 
         if next_word == END_TOKEN:
@@ -133,12 +136,7 @@ if __name__ == "__main__":
     test_imgs = get_image_list(TEST_IMGS_FILE) # 1000
     train_imgs = list(set(all_imgs) - set(test_imgs))
 
-    vocab, img2tokenizedcaps, img2caps = get_data(DATA_FILE)
-    
-    reverse_vocab = {} # maps id to word
-    for word, id in vocab.items():
-        reverse_vocab[id] = word
-
+    vocab, img2tokenizedcaps, img2caps = get_data(DATA_FILE) # word2index, padded and tokenized caps
     img2features = get_features(all_imgs)
     
     Itrain, Xtrain, Ytrain = prep_data(img2tokenizedcaps, img2features, train_imgs)
@@ -154,7 +152,7 @@ if __name__ == "__main__":
     decoder_instance = Decoder(vocab_size=len(vocab))
     decoder = decoder_instance.get_model()
     train(decoder_instance, decoder, Itrain, Xtrain, Ytrain)
-    test(decoder, img2features, test_imgs, reverse_vocab)
+    test(decoder, img2features, test_imgs, img2caps)
 
     # TODO: make a function to plot loss and BLEU for both training and testing
     
