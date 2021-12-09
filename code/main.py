@@ -102,6 +102,7 @@ def test(model, img_to_feats, testing_images):
     # TODO: BLEU stuff
 
 
+
 def predict_caption(model, image_feats):
     '''
     Given a trained model and an encoded image features, returns a predicted caption.
@@ -129,10 +130,10 @@ if __name__ == "__main__":
     test_imgs = get_image_list(TEST_IMGS_FILE) # 1000
     train_imgs = list(set(all_imgs) - set(test_imgs))
 
-    vocab, img2caps = get_data(DATA_FILE) # word2index, padded and tokenized caps
+    vocab, img2tokenizedcaps, img2caps = get_data(DATA_FILE) # word2index, padded and tokenized caps
     img2features = get_features(all_imgs)
     
-    Itrain, Xtrain, Ytrain = prep_data(img2caps, img2features, train_imgs)
+    Itrain, Xtrain, Ytrain = prep_data(img2tokenizedcaps, img2features, train_imgs)
 
     print(f'Training on {len(Xtrain)} examples...')
     print(f'Training on {len(train_imgs)} examples...')

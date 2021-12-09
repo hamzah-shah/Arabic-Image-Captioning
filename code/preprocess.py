@@ -150,9 +150,9 @@ def get_data(file):
     with open(file) as f:
         data = f.read().splitlines()
     
-    caption_dict = make_caption_dict(data)
-    vocabulary = make_vocab_dict(caption_dict)
-    img2caps = tokenize_pad_captions(caption_dict, vocabulary)
+    img2caps = make_caption_dict(data)
+    vocabulary = make_vocab_dict(img2caps)
+    img2tokenizedcaps = tokenize_pad_captions(img2caps, vocabulary)
     
 
-    return vocabulary, img2caps, caption_dict
+    return vocabulary, img2tokenizedcaps, img2caps

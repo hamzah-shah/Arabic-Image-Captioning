@@ -34,13 +34,13 @@ def make_features_dict(x_train, y_train):
   return output
 
 
-def bleu_score(model, x_train, y_train, caption_dict):
+def bleu_score(model, x_train, y_train, caption_dict, img2prediction, image2features):
   features_dict = make_features_dict(x_train, y_train)
 
   for key in features_dict:
     references = [word for value in caption_dict[key] for word in value.strip().split()] # list of the words that exist in 3 original captions
 
-    prediction = None # we need to use prediction funciton from model.py to predict a caption
+    prediction = img2prediction[image2features[key]] # we need to use prediction funciton from model.py to predict a caption
 
     one_gram, two_gram, three_gram, four_gram = [], [], [], []
     one_gram.append(nltk.sentence_bleu(references, prediction, weights=(1, 0, 0, 0)))
