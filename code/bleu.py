@@ -6,6 +6,12 @@ import matplotlib as plt
 # a list of predicted captions from testing data
 # a list of actual captions from testing data
 
+class BleuCallback(tf.keras.callbacks.Callback):
+  
+  # TODO: print out BLEU score at the end of every training epoch
+  def on_epoch_end(self, epoch, logs=None):
+    pass
+
 def bleu_function(actual_captions, predicted_captions):
   references = [[caption.strip().split() for caption in captions] for captions in actual_captions]
   hypotheses = [caption.strip().split() for caption in predicted_captions]

@@ -4,6 +4,7 @@ import tensorflow as tf
 import pickle
 from preprocess import get_data, preprocess_image
 from model import Encoder, Decoder
+from bleu import BleuCallback
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 IMAGE_DIR = os.path.join(ROOT, "data/Flicker8k_Dataset")
@@ -88,8 +89,8 @@ def train(model_class, image_inputs, text_inputs, text_labels):
     
     decoder = model_class.get_model()
     decoder.compile(optimizer=model_class.optimizer, loss=model_class.loss)
-    # TODO: add a validation split in decoder.fit so we print out loss for both training and validation
-    decoder.fit(x=[image_inputs, text_inputs], y=text_labels, batch_size=model_class.batch_size, epochs=5)
+    callbacks = []
+    decoder.fit(x=[image_inputs, text_inputs], y=text_labels, batch_size=model_class.batch_size, epochs=5, validation_split=0.2, callbacks=callbacks)
 
     # TODO: add a callback in decoder.fit to print out BlEU score
 
