@@ -30,7 +30,7 @@ class Encoder(tf.keras.Model):
         :param imgs: an images to be encoded
         :return embedding: a 4096 dimensional embedding of the image
         '''
-        assert(img.shape == (224,224))
+        assert(img.shape == (224,224,3))
         return self.encoder(tf.expand_dims(img, axis=0))
 
 

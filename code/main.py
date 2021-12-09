@@ -42,6 +42,10 @@ def prep_data(img_to_caps, img_to_feats, train_list):
         for cap in captions:
             I_train.append(features)
             input, label = np.delete(cap, -1), np.delete(cap, 0)
+            print(f'IMAGE: {image}')
+            print(f'CAPTION: {cap}')
+            print(f'INPUT: {input}')
+            print(f'LABEL: {label}')
             X_train.append(input)
             Y_train.append(label)
 
@@ -72,16 +76,7 @@ def get_features(image_list):
     return image_features
 
 
-def plot_accuracy_loss(hist):
-    # accuracy plot
-    plt.plot(hist.history['acc'])
-    plt.plot(hist.history['val_acc'])
-    plt.title('model accuracy')
-    plt.ylabel('accuracy')
-    plt.xlabel('epoch')
-    plt.legend(['train', 'val'], loc='upper left')
-    plt.show()
-
+def plot_loss(hist):
     # loss plot
     plt.plot(hist.history['loss'])
     plt.plot(hist.history['val_loss'])
@@ -104,7 +99,7 @@ def train(model_class, model, image_inputs, text_inputs, text_labels):
     '''
     model.compile(optimizer=model_class.optimizer, loss=model_class.loss)
     history = model.fit(x=[image_inputs, text_inputs], y=text_labels, batch_size=model_class.batch_size, epochs=5, validation_split=0.2)
-    plot_accuracy_loss(history)
+    plot_loss(history)
     model.save(MODEL_PATH)
 
 
