@@ -102,7 +102,7 @@ def make_caption_dict(raw_data):
     return output
 
 
-def make_vocab_dict(capt_dict):
+def make_vocab_dict(capt_dict, all_imgs):
     '''
     Takes in the output from make_caption_dict() and constructs a dictionary 
     that maps each unique word in all of these captions to a word id.
@@ -110,16 +110,20 @@ def make_vocab_dict(capt_dict):
     :param output: dictionary that maps image number/name to a list of its captions
     :returns vocab_dict: vocab dictionary which maps each unique word in the captions to an id
     '''
-   
+
     vocab_dict = {}
-    word_set = set()
+    all_words = []
 
-    for caption_list in capt_dict.values():
-        for caption in caption_list:
+    for image in all_imgs:
+        capt_list = capt_dict[image]
+        for caption in capt_list:
             words_array = caption.strip().split()
-            word_set.update(words_array)
+            for word in words_array:
+                if word not in all_words:
+                    all_words.append(word)
 
-    vocab_dict = {w : i + 1 for i, w in enumerate(list(word_set))} # add 1 to all inidices to reserve index 0 for PAD_TOKEN
+    
+    vocab_dict = {w : i + 1 for i, w in enumerate(all_words)} # add 1 to all inidices to reserve index 0 for PAD_TOKEN
     vocab_dict[PAD_TOKEN] = 0
     return vocab_dict
 
@@ -144,7 +148,7 @@ def tokenize_pad_captions(image_to_caps, vocab):
     return img_to_processed_caps
 
 
-def get_data(file):
+def get_data(file, all_imgs):
     '''
     Returns 1) arabic vocabulary, 2) dict mapping image to list of its tokenized captions, 3) index of the pad token
     '''
@@ -152,7 +156,7 @@ def get_data(file):
         data = f.read().splitlines()
     
     img2caps = make_caption_dict(data)
-    vocabulary = make_vocab_dict(img2caps)
+    vocabulary = make_vocab_dict(img2caps, all_imgs)
     img2tokenizedcaps = tokenize_pad_captions(img2caps, vocabulary)
 
     return vocabulary, img2tokenizedcaps, img2caps

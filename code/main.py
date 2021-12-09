@@ -164,7 +164,7 @@ if __name__ == "__main__":
     test_imgs = get_image_list(TEST_IMGS_FILE) # 1000
     train_imgs = list(set(all_imgs) - set(test_imgs))
 
-    vocab, img2tokenizedcaps, img2caps = get_data(DATA_FILE) # word2index, padded and tokenized caps
+    vocab, img2tokenizedcaps, img2caps = get_data(DATA_FILE, all_imgs) # word2index, padded and tokenized caps
     reverse_vocab = {} # maps id to word
     for word, id in vocab.items():
         reverse_vocab[id] = word
