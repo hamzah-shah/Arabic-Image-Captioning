@@ -2,9 +2,9 @@ import os
 import numpy as np
 import tensorflow as tf
 import pickle
+from matplotlib import pyplot as plt
 from preprocess import get_data, preprocess_image
 from model import Encoder, Decoder
-from bleu import BleuCallback
 from bleu import *
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -12,10 +12,12 @@ IMAGE_DIR = os.path.join(ROOT, "data/Flicker8k_Dataset")
 VGG_16FEATURES_FILE = os.path.join(ROOT, 'data/vgg16_features.pickle')
 DATA_FILE = os.path.join(ROOT, "data/Flickr8k_text", "Flickr8k.arabic.full.txt")
 TEST_IMGS_FILE = os.path.join(ROOT, "data/Flickr8k_text", "Flickr_8k.testImages.txt")
+MODEL_PATH = os.path.join(ROOT, "trained_model")
 
 
 START_TOKEN = "<START>"
 END_TOKEN = "<END>"
+PAD_TOKEN = "<PAD>"
 SPACE = " "
 MAXLEN = 20
 
@@ -69,7 +71,26 @@ def get_features(image_list):
     assert(image_features is not None)
     return image_features
 
-    
+
+def plot_accuracy_loss(hist):
+    # accuracy plot
+    plt.plot(hist.history['acc'])
+    plt.plot(hist.history['val_acc'])
+    plt.title('model accuracy')
+    plt.ylabel('accuracy')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'val'], loc='upper left')
+    plt.show()
+
+    # loss plot
+    plt.plot(hist.history['loss'])
+    plt.plot(hist.history['val_loss'])
+    plt.title('model loss')
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'val'], loc='upper left')
+    plt.show()
+
 
 def train(model_class, model, image_inputs, text_inputs, text_labels):
     '''
@@ -82,12 +103,13 @@ def train(model_class, model, image_inputs, text_inputs, text_labels):
     :param pad_index
     '''
     model.compile(optimizer=model_class.optimizer, loss=model_class.loss)
-    callbacks = [BleuCallback()]
-    model.fit(x=[image_inputs, text_inputs], y=text_labels, batch_size=model_class.batch_size, epochs=5, validation_split=0.2, callbacks=callbacks)
+    history = model.fit(x=[image_inputs, text_inputs], y=text_labels, batch_size=model_class.batch_size, epochs=5, validation_split=0.2)
+    plot_accuracy_loss(history)
+    model.save(MODEL_PATH)
 
 
 
-def test(model, img_to_feats, testing_images, img2caps):
+def test(model, img_to_feats, testing_images, word2id, id2word, img2caps):
     '''
     Tests the decoder model using greedy search.
     :param model
@@ -97,10 +119,9 @@ def test(model, img_to_feats, testing_images, img2caps):
     img2prediction = {}
     for img in testing_images:
         feat_vector = img_to_feats[img]
-        predicted_caption = predict_caption(model, feat_vector)
+        predicted_caption = predict_caption(model, feat_vector, word2id, id2word)
         img2prediction[img] = predicted_caption
     
-    # TODO: BLEU stuff
     one_gram_mean, two_gram_mean, three_gram_mean, four_gram_mean = bleu_score(testing_images, img2caps, img2prediction)
 
     print('one_gram: ' + str(one_gram_mean), 'two_gram: '+ str(two_gram_mean), 'three_gram: ' + str(three_gram_mean), 'four_gram: ' + str(four_gram_mean))
@@ -109,26 +130,36 @@ def test(model, img_to_feats, testing_images, img2caps):
 
 
 
-
-
-def predict_caption(model, image_feats):
+def predict_caption(model, image_feats, word_to_id, id_to_word):
     '''
     Given a trained model and an encoded image features, returns a predicted caption.
     :param model
     :param image_feats: an feature vector that encodes an image
     return predicted caption
     '''
-    cap = START_TOKEN
-    for _ in MAXLEN:
-        padded_cap = tf.keras.preprocessing.sequence.pad_sequences([cap], maxlen=MAXLEN, padding='post')
-        next_word_dist = model.predict(x=[image_feats, padded_cap])
-        next_word = tf.argmax(next_word_dist)
-        cap = cap + SPACE + next_word
+    # print(f'START TOKEN: {word_to_id[START_TOKEN]}')
+    # print(f'END TOKEN: {word_to_id[END_TOKEN]}')
+    # print(f'PAD TOKEN: {word_to_id[PAD_TOKEN]}')
 
-        if next_word == END_TOKEN:
+    cap = [word_to_id[START_TOKEN]]
+    for _ in range(MAXLEN):
+        padded_cap = tf.convert_to_tensor(tf.keras.preprocessing.sequence.pad_sequences([cap], maxlen=MAXLEN-1, padding='post'))
+        next_word_dist = tf.squeeze(model.predict(x=[image_feats, padded_cap]))[-1] # get last hidden state
+        next_word = int(tf.argmax(next_word_dist))
+        cap.append(next_word)
+
+        if next_word == word_to_id[END_TOKEN]:
             break
+    # remove start, end, and pad tokens from caption
+    filtered_cap = list(filter(lambda w: w != word_to_id[PAD_TOKEN] and w != word_to_id[START_TOKEN] and w != word_to_id[END_TOKEN] , cap))
+
+    caption = ""
+    for id in filtered_cap:
+        caption = caption + SPACE + id_to_word[id]
     
-    return cap
+    # print(caption)
+    # exit()
+    return caption
 
 
 
@@ -139,6 +170,9 @@ if __name__ == "__main__":
     train_imgs = list(set(all_imgs) - set(test_imgs))
 
     vocab, img2tokenizedcaps, img2caps = get_data(DATA_FILE) # word2index, padded and tokenized caps
+    reverse_vocab = {} # maps id to word
+    for word, id in vocab.items():
+        reverse_vocab[id] = word
     img2features = get_features(all_imgs)
     
     Itrain, Xtrain, Ytrain = prep_data(img2tokenizedcaps, img2features, train_imgs)
@@ -151,10 +185,13 @@ if __name__ == "__main__":
     # print(f'XTrain {Xtrain.shape}')
     # print(f'YTrain {Ytrain.shape}')
     
-    decoder_instance = Decoder(vocab_size=len(vocab))
-    decoder = decoder_instance.get_model()
-    train(decoder_instance, decoder, Itrain, Xtrain, Ytrain)
-    test(decoder, img2features, test_imgs, img2caps)
+    try:
+        decoder = tf.keras.models.load_model(MODEL_PATH)
+    except:
+        decoder_instance = Decoder(vocab_size=len(vocab))
+        decoder = decoder_instance.get_model()
+        train(decoder_instance, decoder, Itrain, Xtrain, Ytrain)
+    test(decoder, img2features, test_imgs, vocab, reverse_vocab, img2caps)
 
     # TODO: make a function to plot loss and BLEU for both training and testing
     

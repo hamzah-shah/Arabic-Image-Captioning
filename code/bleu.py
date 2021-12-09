@@ -1,20 +1,13 @@
 import nltk
+from nltk.translate.bleu_score import sentence_bleu
 import tensorflow as tf
 import matplotlib as plt
 # from nltk import corpus_bleu
-# Here's what we need for implementing accuracy function (BLEU):
-# a list of predicted captions from testing data
-# a list of actual captions from testing data
 START_TOKEN = "<START>"
 END_TOKEN = "<END>"
 SPACE = " "
 MAXLEN = 20
 
-class BleuCallback(tf.keras.callbacks.Callback):
-  
-  # TODO: print out BLEU score at the end of every training epoch
-  def on_epoch_end(self, epoch, logs=None):
-    pass
 
 # def bleu_function(actual_captions, predicted_captions):
 #   references = [[caption.strip().split() for caption in captions] for captions in actual_captions]
@@ -39,17 +32,15 @@ class BleuCallback(tf.keras.callbacks.Callback):
 
 
 def bleu_score(test_images, caption_dict, img2prediction):
-  # features_dict = make_features_dict(x_train, y_train)
-
   for image in test_images:
     references = [word for value in caption_dict[image] for word in value.strip().split() if word != START_TOKEN or word != END_TOKEN] # list of the words that exist in 3 original captions
     prediction = img2prediction[image] # we need to use prediction funciton from model.py to predict a caption
 
     one_gram, two_gram, three_gram, four_gram = [], [], [], []
-    one_gram.append(nltk.sentence_bleu(references, prediction, weights=(1, 0, 0, 0)))
-    two_gram.append(nltk.sentence_bleu(references, prediction, weights=(0.5, 0.5, 0, 0)))
-    three_gram.append(nltk.sentence_bleu(references, prediction, weights=(float(1/3), float(1/3), float(1/3), 0)))
-    four_gram.append(nltk.sentence_bleu(references, prediction, weights=(0.25, 0.25, 0.25, 0.25)))
+    one_gram.append(sentence_bleu(references, prediction, weights=(1, 0, 0, 0)))
+    two_gram.append(sentence_bleu(references, prediction, weights=(0.5, 0.5, 0, 0)))
+    three_gram.append(sentence_bleu(references, prediction, weights=(float(1/3), float(1/3), float(1/3), 0)))
+    four_gram.append(sentence_bleu(references, prediction, weights=(0.25, 0.25, 0.25, 0.25)))
 
   return tf.mean(one_gram), tf.mean(two_gram), tf.mean(three_gram), tf.mean(four_gram)
 

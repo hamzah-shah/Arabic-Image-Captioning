@@ -124,23 +124,24 @@ def make_vocab_dict(capt_dict):
     return vocab_dict
 
 
-def tokenize_pad_captions(output, vocab):
+def tokenize_pad_captions(image_to_caps, vocab):
     '''
     Tokenizes all captions.
     :param output: dictionary mapping each image to its captions (the output from make_caption_dict())
     :param vocab: vocabulary dictionary
     :returns dictionary mapping each image to its tokenized captions
     '''
-    for image in output:
+    img_to_processed_caps = {}
+    for image in image_to_caps:
         tokenized_captions = []
-        for caption in output[image]:
+        for caption in image_to_caps[image]:
             tokenized_caption = []
             for word in caption.split():
                 tokenized_caption.append(vocab[word])
             tokenized_captions.append(tokenized_caption)
         padded_captions = tf.keras.preprocessing.sequence.pad_sequences(tokenized_captions, maxlen=MAXLEN, padding='post')
-        output[image] = padded_captions
-    return output
+        img_to_processed_caps[image] = padded_captions
+    return img_to_processed_caps
 
 
 def get_data(file):
@@ -153,6 +154,5 @@ def get_data(file):
     img2caps = make_caption_dict(data)
     vocabulary = make_vocab_dict(img2caps)
     img2tokenizedcaps = tokenize_pad_captions(img2caps, vocabulary)
-    
 
     return vocabulary, img2tokenizedcaps, img2caps
