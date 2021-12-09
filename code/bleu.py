@@ -42,7 +42,7 @@ def bleu_score(test_images, caption_dict, img2prediction):
     three_gram.append(sentence_bleu(references, prediction, weights=(float(1/3), float(1/3), float(1/3), 0)))
     four_gram.append(sentence_bleu(references, prediction, weights=(0.25, 0.25, 0.25, 0.25)))
 
-  return tf.mean(one_gram), tf.mean(two_gram), tf.mean(three_gram), tf.mean(four_gram)
+  return tf.math.reduce_mean(one_gram), tf.math.reduce_mean(two_gram), tf.math.reduce_mean(three_gram), tf.math.reduce_mean(four_gram)
 
 def visualize_accuracy(test_data):
   left = [1, 2, 3, 4]
