@@ -4,15 +4,15 @@ import re
 
 VGG16_IMG_SIZE = (224,224)
 
-# def show_image(file):
-#     import os
-#     import matplotlib.pyplot as plt
-#     import matplotlib.image as mpimg
-#     ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-#     path = os.path.join(ROOT, "data/Flicker8k_Dataset", "469029994_349e138606.jpg")
-#     img = mpimg.imread(path)
-#     imgplot = plt.imshow(img)
-#     plt.show()
+def show_image(file):
+    import os
+    import matplotlib.pyplot as plt
+    import matplotlib.image as mpimg
+    ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    path = os.path.join(ROOT, "data/Flicker8k_Dataset", file)
+    img = mpimg.imread(path)
+    imgplot = plt.imshow(img)
+    plt.show()
 
 def preprocess_image(img):
     '''
@@ -57,7 +57,8 @@ def clean_caption(caption):
     # remove punctuation
     punctuations = set(list('''`÷×؛<>_()*&^%][ـ،/:"؟.,'{}~¦+|!”…“–ـ'''))
     # print(caption)
-    caption = ''.join([char for char in caption if char not in punctuations][::-1])
+    # caption = ''.join([char for char in caption if char not in punctuations][::-1])
+    caption = ''.join([char for char in caption if char not in punctuations])
     # print(caption)
 
     # remove non-Arabic letters

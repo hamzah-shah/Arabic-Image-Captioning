@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow as tf
 import pickle
 from matplotlib import pyplot as plt
-from preprocess import get_data, preprocess_image
+from preprocess import get_data, preprocess_image, show_image
 from model import Encoder, Decoder
 from bleu import *
 
@@ -27,10 +27,10 @@ def get_image_list(file):
     assert(len(imgs) == len(set(imgs))) # no image listed more than once
     return imgs
 
-def prep_data(img_to_caps, img_to_feats, train_list):
+def prep_data(img_to_token_caps, img_to_feats, train_list):
     '''
     Prepares the training data to be passed into the model.
-    :param img_to_caps: dictionary mapping each image to a list of captions
+    :param img_to_token_caps: dictionary mapping each image to a list of tokenized captions
     :param img_to_feats: dictionary mapping each image to a feature vector
     :param train_list: list of images in training set 
     :returns I_train, X_train, Y_train
@@ -38,14 +38,10 @@ def prep_data(img_to_caps, img_to_feats, train_list):
     I_train, X_train, Y_train = [], [], []
 
     for image in train_list:
-        features, captions = img_to_feats[image], img_to_caps[image]
+        features, captions = img_to_feats[image], img_to_token_caps[image]
         for cap in captions:
             I_train.append(features)
             input, label = np.delete(cap, -1), np.delete(cap, 0)
-            print(f'IMAGE: {image}')
-            print(f'CAPTION: {cap}')
-            print(f'INPUT: {input}')
-            print(f'LABEL: {label}')
             X_train.append(input)
             Y_train.append(label)
 
@@ -157,17 +153,39 @@ def predict_caption(model, image_feats, word_to_id, id_to_word):
     return caption
 
 
+# def verify_caption_ordering(example_image, img_to_token_caps, img_to_caps, id_to_word):
+#     '''
+#     Verifies that the words in the captions are being processed in the correct order, since
+#     Arabic is printed in a different direction than English.
+#     '''
+#     example_token_cap = img_to_token_caps[example_image][0]
+#     example_cap = img_to_caps[example_image][0]
+        
+#     print(f'IMAGE: {example_image}')
+#     show_image(file=example_image)
+#     print(f'TOKEN CAPTION: {example_token_cap}')
+#     print(f'FIRST WORD: {id_to_word[example_token_cap[1]]}')
+#     print(f'CAPTION: {example_cap}')
+
+#     with open('readme.txt', 'w') as f:
+#         f.write(example_cap)
+
+
 
 if __name__ == "__main__":
     # 8091 images in the Flicker_8k dataset
     all_imgs = os.listdir(IMAGE_DIR)
     test_imgs = get_image_list(TEST_IMGS_FILE) # 1000
-    train_imgs = list(set(all_imgs) - set(test_imgs))
+    train_imgs = [img for img in all_imgs if img not in test_imgs]
 
     vocab, img2tokenizedcaps, img2caps = get_data(DATA_FILE, all_imgs) # word2index, padded and tokenized caps
+
     reverse_vocab = {} # maps id to word
     for word, id in vocab.items():
         reverse_vocab[id] = word
+    
+    # verify_caption_ordering(train_imgs[1], img2tokenizedcaps, img2caps, reverse_vocab)
+
     img2features = get_features(all_imgs)
     
     Itrain, Xtrain, Ytrain = prep_data(img2tokenizedcaps, img2features, train_imgs)
@@ -186,8 +204,6 @@ if __name__ == "__main__":
         decoder_instance = Decoder(vocab_size=len(vocab))
         decoder = decoder_instance.get_model()
         train(decoder_instance, decoder, Itrain, Xtrain, Ytrain)
-    test(decoder, img2features, test_imgs, vocab, reverse_vocab, img2caps)
 
-    # TODO: make a function to plot loss and BLEU for both training and testing
     
     
