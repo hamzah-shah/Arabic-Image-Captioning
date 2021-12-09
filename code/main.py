@@ -86,7 +86,7 @@ def train(model_class, model, image_inputs, text_inputs, text_labels):
 
 
 
-def test(model, img_to_feats, testing_images):
+def test(model, img_to_feats, testing_images, id2word):
     '''
     Tests the decoder model using greedy search.
     :param model
@@ -96,25 +96,28 @@ def test(model, img_to_feats, testing_images):
     img2prediction = {}
     for img in testing_images:
         feat_vector = img_to_feats[img]
-        predicted_caption = predict_caption(model, feat_vector)
+        predicted_caption = predict_caption(model, feat_vector, id2word)
         img2prediction[img] = predicted_caption
+    
+
     
     # TODO: BLEU stuff
 
 
 
-def predict_caption(model, image_feats):
+def predict_caption(model, image_feats, id_to_word):
     '''
     Given a trained model and an encoded image features, returns a predicted caption.
     :param model
     :param image_feats: an feature vector that encodes an image
-    return predicted caption
+    return predicted caption in word form
     '''
     cap = START_TOKEN
     for _ in MAXLEN:
         padded_cap = tf.keras.preprocessing.sequence.pad_sequences([cap], maxlen=MAXLEN, padding='post')
         next_word_dist = model.predict(x=[image_feats, padded_cap])
-        next_word = tf.argmax(next_word_dist)
+        next_word_token = tf.argmax(next_word_dist)
+        next_word = id_to_word[next_word_token]
         cap = cap + SPACE + next_word
 
         if next_word == END_TOKEN:
@@ -130,7 +133,12 @@ if __name__ == "__main__":
     test_imgs = get_image_list(TEST_IMGS_FILE) # 1000
     train_imgs = list(set(all_imgs) - set(test_imgs))
 
-    vocab, img2tokenizedcaps, img2caps = get_data(DATA_FILE) # word2index, padded and tokenized caps
+    vocab, img2tokenizedcaps, img2caps = get_data(DATA_FILE)
+    
+    reverse_vocab = {} # maps id to word
+    for word, id in vocab.items():
+        reverse_vocab[id] = word
+
     img2features = get_features(all_imgs)
     
     Itrain, Xtrain, Ytrain = prep_data(img2tokenizedcaps, img2features, train_imgs)
@@ -146,7 +154,7 @@ if __name__ == "__main__":
     decoder_instance = Decoder(vocab_size=len(vocab))
     decoder = decoder_instance.get_model()
     train(decoder_instance, decoder, Itrain, Xtrain, Ytrain)
-    test(decoder, img2features, test_imgs)
+    test(decoder, img2features, test_imgs, reverse_vocab)
 
     # TODO: make a function to plot loss and BLEU for both training and testing
     
