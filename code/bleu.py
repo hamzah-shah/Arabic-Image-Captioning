@@ -5,6 +5,10 @@ import matplotlib as plt
 # Here's what we need for implementing accuracy function (BLEU):
 # a list of predicted captions from testing data
 # a list of actual captions from testing data
+START_TOKEN = "<START>"
+END_TOKEN = "<END>"
+SPACE = " "
+MAXLEN = 20
 
 class BleuCallback(tf.keras.callbacks.Callback):
   
@@ -34,13 +38,12 @@ def make_features_dict(x_train, y_train):
   return output
 
 
-def bleu_score(model, x_train, y_train, caption_dict, img2prediction, image2features):
-  features_dict = make_features_dict(x_train, y_train)
+def bleu_score(test_images, caption_dict, img2prediction):
+  # features_dict = make_features_dict(x_train, y_train)
 
-  for key in features_dict:
-    references = [word for value in caption_dict[key] for word in value.strip().split()] # list of the words that exist in 3 original captions
-
-    prediction = img2prediction[image2features[key]] # we need to use prediction funciton from model.py to predict a caption
+  for image in test_images:
+    references = [word for value in caption_dict[image] for word in value.strip().split() if word != START_TOKEN or word != END_TOKEN] # list of the words that exist in 3 original captions
+    prediction = img2prediction[image] # we need to use prediction funciton from model.py to predict a caption
 
     one_gram, two_gram, three_gram, four_gram = [], [], [], []
     one_gram.append(nltk.sentence_bleu(references, prediction, weights=(1, 0, 0, 0)))
