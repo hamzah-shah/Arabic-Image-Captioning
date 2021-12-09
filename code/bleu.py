@@ -16,26 +16,26 @@ class BleuCallback(tf.keras.callbacks.Callback):
   def on_epoch_end(self, epoch, logs=None):
     pass
 
-def bleu_function(actual_captions, predicted_captions):
-  references = [[caption.strip().split() for caption in captions] for captions in actual_captions]
-  hypotheses = [caption.strip().split() for caption in predicted_captions]
-  one_gram = nltk.corpus_bleu(references, hypotheses, weights=(1, 0, 0, 0))
-  two_gram = nltk.corpus_bleu(references, hypotheses, weights=(0.5, 0.5, 0, 0))
-  three_gram = nltk.corpus_bleu(references, hypotheses, weights=(float(1/3), float(1/3), float(1/3), 0))
-  four_gram = nltk.corpus_bleu(references, hypotheses, weights=(0.25, 0.25, 0.25, 0.25))
+# def bleu_function(actual_captions, predicted_captions):
+#   references = [[caption.strip().split() for caption in captions] for captions in actual_captions]
+#   hypotheses = [caption.strip().split() for caption in predicted_captions]
+#   one_gram = nltk.corpus_bleu(references, hypotheses, weights=(1, 0, 0, 0))
+#   two_gram = nltk.corpus_bleu(references, hypotheses, weights=(0.5, 0.5, 0, 0))
+#   three_gram = nltk.corpus_bleu(references, hypotheses, weights=(float(1/3), float(1/3), float(1/3), 0))
+#   four_gram = nltk.corpus_bleu(references, hypotheses, weights=(0.25, 0.25, 0.25, 0.25))
 
-  return one_gram, two_gram, three_gram, four_gram
+#   return one_gram, two_gram, three_gram, four_gram
 
 
-def make_features_dict(x_train, y_train):
-  output = {}
-  for i in range(len(x_train)):
-    if x_train[i] in output:
-      output[x_train[i]].append(y_train[i])
-    else:
-      output[x_train[i]] = [y_train[i]]
+# def make_features_dict(x_train, y_train):
+#   output = {}
+#   for i in range(len(x_train)):
+#     if x_train[i] in output:
+#       output[x_train[i]].append(y_train[i])
+#     else:
+#       output[x_train[i]] = [y_train[i]]
 
-  return output
+#   return output
 
 
 def bleu_score(test_images, caption_dict, img2prediction):
@@ -53,11 +53,11 @@ def bleu_score(test_images, caption_dict, img2prediction):
 
   return tf.mean(one_gram), tf.mean(two_gram), tf.mean(three_gram), tf.mean(four_gram)
 
-def visualize_accuracy(train_data, test_data):
+def visualize_accuracy(test_data):
   left = [1, 2, 3, 4]
   tick_label = ['one_gram', 'two_gram', 'three_gram', 'four_gram']
-  plt.bar(left, train_data, tick_label = tick_label, width = 0.8, color = ['green', 'red'])
-
   plt.bar(left, test_data, tick_label = tick_label, width = 0.8, color = ['green', 'red'])
+
+  # plt.bar(left, test_data, tick_label = tick_label, width = 0.8, color = ['green', 'red'])
   plt.show()
 
