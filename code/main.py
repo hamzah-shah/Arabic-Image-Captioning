@@ -103,7 +103,9 @@ def test(model, img_to_feats, testing_images, img2caps):
     # TODO: BLEU stuff
     one_gram_mean, two_gram_mean, three_gram_mean, four_gram_mean = bleu_score(testing_images, img2caps, img2prediction)
 
-    print('one_gram: ' + str(one_gram_mean), 'two_gram: '+ str(two_gram_mean), 'three_gram: ' + str(three_gram_mean), 'four_gram: ' + str(three_gram_mean))
+    print('one_gram: ' + str(one_gram_mean), 'two_gram: '+ str(two_gram_mean), 'three_gram: ' + str(three_gram_mean), 'four_gram: ' + str(four_gram_mean))
+    visualize_accuracy([one_gram_mean, two_gram_mean, three_gram_mean, four_gram_mean])
+    
 
 
 
