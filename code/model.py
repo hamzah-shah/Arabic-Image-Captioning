@@ -65,7 +65,8 @@ class Decoder():
         text_embeddings = self.text_embedding (self.input_text) 
         gru_outputs, _ = self.gru (text_embeddings, initial_state=image_embeddings) 
         fc1_outputs = self.text_dense1(gru_outputs)
-        fc2_outputs = self.text_dense2 (fc1_outputs)
+        drop = self.dropout(fc1_outputs)
+        fc2_outputs = self.text_dense2 (drop)
 
         decoder = tf.keras.Model(inputs=[self.input_image, self.input_text], outputs=fc2_outputs)
         decoder.summary()
