@@ -1,7 +1,7 @@
 import tensorflow as tf
 import os
 from tensorflow.keras.applications.vgg16 import VGG16
-from tensorflow.keras.layers import Input, Embedding, LSTM, Dense, GRU
+from tensorflow.keras.layers import Input, Embedding, Dropout, Dense, GRU
 
 # Killing optional CPU driver warnings
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -56,6 +56,7 @@ class Decoder():
         self.text_embedding = Embedding(input_dim=self.vocab_size, output_dim=self.text_embedding_size, input_length=MAXLEN-1, mask_zero=True) 
         self.gru = GRU(units=256,return_sequences=True, return_state=True)
         self.text_dense1 = Dense(units=256, activation="relu")
+        self.dropout = Dropout(0.3)
         self.text_dense2 = Dense(units=vocab_size, activation="softmax")
     
     def get_model(self):
