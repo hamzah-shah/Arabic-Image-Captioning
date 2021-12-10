@@ -101,7 +101,7 @@ def train(model_class, model, image_inputs, text_inputs, text_labels, training_i
     model.compile(optimizer=model_class.optimizer, loss=model_class.loss)
     bleu_callback = BleuCallback(model, image_inputs, text_inputs, training_images, img_to_caps, word_to_id, id_to_word)
     callbacks=[bleu_callback]
-    history = model.fit(x=[image_inputs, text_inputs], y=text_labels, batch_size=model_class.batch_size, epochs=3, validation_split=0.2, callbacks=callbacks)
+    history = model.fit(x=[image_inputs, text_inputs], y=text_labels, batch_size=model_class.batch_size, epochs=30, validation_split=0.2, callbacks=callbacks)
     plot_loss(history)
     # model.save(MODEL_PATH)
     return bleu_callback.get_data()
