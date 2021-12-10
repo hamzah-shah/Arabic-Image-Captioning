@@ -99,10 +99,12 @@ def train(model_class, model, image_inputs, text_inputs, text_labels, training_i
     :param pad_index
     '''
     model.compile(optimizer=model_class.optimizer, loss=model_class.loss)
-    callbacks=[BleuCallback(model, image_inputs, text_inputs, training_images, img_to_caps, word_to_id, id_to_word)]
-    history = model.fit(x=[image_inputs, text_inputs], y=text_labels, batch_size=model_class.batch_size, epochs=10, validation_split=0.2, callbacks=callbacks)
+    bleu_callback = BleuCallback(model, image_inputs, text_inputs, training_images, img_to_caps, word_to_id, id_to_word)
+    callbacks=[bleu_callback]
+    history = model.fit(x=[image_inputs, text_inputs], y=text_labels, batch_size=model_class.batch_size, epochs=3, validation_split=0.2, callbacks=callbacks)
     plot_loss(history)
     # model.save(MODEL_PATH)
+    return bleu_callback.get_data()
 
 
 
@@ -114,7 +116,8 @@ def test(model, img_to_feats, testing_images, word2id, id2word, img2caps):
     :param testing_images: list of test images
     '''
     img2prediction = {}
-    for img in testing_images:
+    for i, img in enumerate(testing_images):
+        print(i)
         feat_vector = img_to_feats[img]
         predicted_caption = predict_caption(model, feat_vector, word2id, id2word)
         img2prediction[img] = predicted_caption
@@ -122,10 +125,11 @@ def test(model, img_to_feats, testing_images, word2id, id2word, img2caps):
     b1, b2, b3, b4 = bleu_score(testing_images, img2caps, img2prediction)
 
     print('b1: ' + str(b1), 'b2: '+ str(b2), 'b3: ' + str(b3), 'b4: ' + str(b4))
-    TESTING_BLEU = [b1, b2, b3, b4]
 
     with open(PREDICTION_FILE, 'wb') as file:
-            pickle.dump(img2prediction, file)
+        pickle.dump(img2prediction, file)
+    
+    return [b1, b2, b3, b4]
     
 
 def predict_caption(model, image_feats, word_to_id, id_to_word):
@@ -179,6 +183,9 @@ class BleuCallback(tf.keras.callbacks.Callback):
         self.img2caps = img2caps
         self.word2id = word2id
         self.id2word = id2word
+    
+    def on_train_begin(self, logs={}):
+        self.bleu_list = []
 
     def on_epoch_end(self, epoch, logs=None):
         rng = np.random.default_rng()
@@ -203,7 +210,10 @@ class BleuCallback(tf.keras.callbacks.Callback):
         
         b1, b2, b3, b4 = bleu_score(batch_images, self.img2caps, img2prediction)
         print('b1: ' + str(b1), 'b2: '+ str(b2), 'b3: ' + str(b3), 'b4: ' + str(b4))
-        TRAINING_BLEU = [b1, b2, b3, b4]
+        self.bleu_list = [b1, b2, b3, b4]
+    
+    def get_data(self):
+        return self.bleu_list
 
 
 # def verify_caption_ordering(example_image, img_to_token_caps, img_to_caps, id_to_word):
@@ -253,14 +263,15 @@ if __name__ == "__main__":
     # except:
     #     decoder_instance = Decoder(vocab_size=len(vocab))
     #     decoder = decoder_instance.get_model()
-    #     train(decoder_instance, decoder, Itrain, Xtrain, Ytrain, train_imgs, img2caps, vocab, reverse_vocab)
- 
+    #     training_bleu = train(decoder_instance, decoder, Itrain, Xtrain, Ytrain, train_imgs, img2caps, vocab, reverse_vocab)
     decoder_instance = Decoder(vocab_size=len(vocab))
     decoder = decoder_instance.get_model()
-    train(decoder_instance, decoder, Itrain, Xtrain, Ytrain, train_imgs, img2caps, vocab, reverse_vocab)
-   
-    test(decoder, img2features, test_imgs, vocab, reverse_vocab, img2caps)
-    visualize_accuracy(TRAINING_BLEU, TESTING_BLEU)
+    training_bleu = train(decoder_instance, decoder, Itrain, Xtrain, Ytrain, train_imgs, img2caps, vocab, reverse_vocab)
+    
+    
+    print("BEFORE TESTING")
+    testing_bleu = test(decoder, img2features, test_imgs, vocab, reverse_vocab, img2caps)
+    visualize_accuracy(training_bleu, testing_bleu)
 
     
     
