@@ -55,5 +55,6 @@ def visualize_accuracy(training_scores, testing_scores):
   
     # plotting graph
     df.plot(x="Gram", y=["Train", "Test"], kind="bar", xlabel="bleu metric", ylabel="score")
-    plt.show()
+    plt.savefig('bleu_score.png')
+    # plt.show()
 

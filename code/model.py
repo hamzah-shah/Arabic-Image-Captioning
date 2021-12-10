@@ -55,7 +55,7 @@ class Decoder():
         self.image_dense = Dense(units=self.image_embedding_size, activation="tanh")
         self.text_embedding = Embedding(input_dim=self.vocab_size, output_dim=self.text_embedding_size, input_length=MAXLEN-1, mask_zero=True) 
         self.gru = GRU(units=256,return_sequences=True, return_state=True)
-        self.text_dense1 = Dense(units=256, activation="relu")
+        self.text_dense1 = Dense(units=256, activation="relu", activity_regularizer=tf.keras.regularizers.l1_l2(0.05, 0.05), kernel_regularizer=tf.keras.regularizers.l1_l2(0.05, 0.05))
         self.dropout = Dropout(0.3)
         self.text_dense2 = Dense(units=vocab_size, activation="softmax")
     

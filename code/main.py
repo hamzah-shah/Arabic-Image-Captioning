@@ -85,7 +85,8 @@ def plot_loss(hist):
     plt.ylabel('loss')
     plt.xlabel('epoch')
     plt.legend(['train', 'val'], loc='upper left')
-    plt.show()
+    # plt.show()
+    plt.savefig('loss.png')
 
 
 def train(model_class, model, image_inputs, text_inputs, text_labels, training_images, img_to_caps, word_to_id, id_to_word):
@@ -101,7 +102,7 @@ def train(model_class, model, image_inputs, text_inputs, text_labels, training_i
     model.compile(optimizer=model_class.optimizer, loss=model_class.loss)
     bleu_callback = BleuCallback(model, image_inputs, text_inputs, training_images, img_to_caps, word_to_id, id_to_word)
     callbacks=[bleu_callback]
-    history = model.fit(x=[image_inputs, text_inputs], y=text_labels, batch_size=model_class.batch_size, epochs=30, validation_split=0.2, callbacks=callbacks)
+    history = model.fit(x=[image_inputs, text_inputs], y=text_labels, batch_size=model_class.batch_size, epochs=50, validation_split=0.2, callbacks=callbacks)
     plot_loss(history)
     # model.save(MODEL_PATH)
     return bleu_callback.get_data()
@@ -126,8 +127,8 @@ def test(model, img_to_feats, testing_images, word2id, id2word, img2caps):
 
     print('b1: ' + str(b1), 'b2: '+ str(b2), 'b3: ' + str(b3), 'b4: ' + str(b4))
 
-    with open(PREDICTION_FILE, 'wb') as file:
-        pickle.dump(img2prediction, file)
+    # with open(PREDICTION_FILE, 'wb') as file:
+    #     pickle.dump(img2prediction, file)
     
     return [b1, b2, b3, b4]
     
