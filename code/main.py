@@ -268,10 +268,8 @@ if __name__ == "__main__":
     decoder = decoder_instance.get_model()
     training_bleu = train(decoder_instance, decoder, Itrain, Xtrain, Ytrain, train_imgs, img2caps, vocab, reverse_vocab)
     
-    
-    print("BEFORE TESTING")
-    testing_bleu = test(decoder, img2features, test_imgs, vocab, reverse_vocab, img2caps)
-    visualize_accuracy(training_bleu, testing_bleu)
+    # testing_bleu = test(decoder, img2features, test_imgs, vocab, reverse_vocab, img2caps)
+    # visualize_accuracy(training_bleu, testing_bleu)
 
     
     
