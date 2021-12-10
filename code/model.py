@@ -40,7 +40,7 @@ class Decoder():
     The decoder is a recurrent network, specifically an LSTM.
     '''
     def __init__(self, vocab_size):
-        self.batch_size = 64
+        self.batch_size = 512
         self.learning_rate = 0.001
         self.optimizer = tf.keras.optimizers.Adam(self.learning_rate)
         self.loss = tf.keras.losses.SparseCategoricalCrossentropy()
