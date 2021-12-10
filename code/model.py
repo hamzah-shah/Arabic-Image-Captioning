@@ -68,5 +68,5 @@ class Decoder():
 
         decoder = tf.keras.Model(inputs=[self.input_image, self.input_text], outputs=fc2_outputs)
         decoder.summary()
-        
+
         return decoder

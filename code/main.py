@@ -1,8 +1,9 @@
 import os
+from re import A
 import numpy as np
 import tensorflow as tf
 import pickle
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
 from preprocess import get_data, preprocess_image, show_image
 from model import Encoder, Decoder
 from bleu import *
@@ -13,6 +14,7 @@ VGG_16FEATURES_FILE = os.path.join(ROOT, 'data/vgg16_features.pickle')
 DATA_FILE = os.path.join(ROOT, "data/Flickr8k_text", "Flickr8k.arabic.full.txt")
 TEST_IMGS_FILE = os.path.join(ROOT, "data/Flickr8k_text", "Flickr_8k.testImages.txt")
 MODEL_PATH = os.path.join(ROOT, "trained_model")
+PREDICTION_FILE = os.path.join(ROOT, 'results/prediction.pickle')
 
 
 START_TOKEN = "<START>"
@@ -20,6 +22,9 @@ END_TOKEN = "<END>"
 PAD_TOKEN = "<PAD>"
 SPACE = " "
 MAXLEN = 20
+
+TRAINING_BLEU = []
+TESTING_BLEU = []
 
 def get_image_list(file):
     with open(file) as f:
@@ -83,7 +88,7 @@ def plot_loss(hist):
     plt.show()
 
 
-def train(model_class, model, image_inputs, text_inputs, text_labels):
+def train(model_class, model, image_inputs, text_inputs, text_labels, training_images, img_to_caps, word_to_id, id_to_word):
     '''
     Trains the decoder model.
     :param model_class: class for the decoder model
@@ -94,9 +99,10 @@ def train(model_class, model, image_inputs, text_inputs, text_labels):
     :param pad_index
     '''
     model.compile(optimizer=model_class.optimizer, loss=model_class.loss)
-    history = model.fit(x=[image_inputs, text_inputs], y=text_labels, batch_size=model_class.batch_size, epochs=5, validation_split=0.2)
+    callbacks=[BleuCallback(model, image_inputs, text_inputs, training_images, img_to_caps, word_to_id, id_to_word)]
+    history = model.fit(x=[image_inputs, text_inputs], y=text_labels, batch_size=model_class.batch_size, epochs=10, validation_split=0.2, callbacks=callbacks)
     plot_loss(history)
-    model.save(MODEL_PATH)
+    # model.save(MODEL_PATH)
 
 
 
@@ -113,13 +119,14 @@ def test(model, img_to_feats, testing_images, word2id, id2word, img2caps):
         predicted_caption = predict_caption(model, feat_vector, word2id, id2word)
         img2prediction[img] = predicted_caption
     
-    one_gram_mean, two_gram_mean, three_gram_mean, four_gram_mean = bleu_score(testing_images, img2caps, img2prediction)
+    b1, b2, b3, b4 = bleu_score(testing_images, img2caps, img2prediction)
 
-    print('one_gram: ' + str(one_gram_mean), 'two_gram: '+ str(two_gram_mean), 'three_gram: ' + str(three_gram_mean), 'four_gram: ' + str(four_gram_mean))
-    visualize_accuracy([one_gram_mean, two_gram_mean, three_gram_mean, four_gram_mean])
+    print('b1: ' + str(b1), 'b2: '+ str(b2), 'b3: ' + str(b3), 'b4: ' + str(b4))
+    TESTING_BLEU = [b1, b2, b3, b4]
+
+    with open(PREDICTION_FILE, 'wb') as file:
+            pickle.dump(img2prediction, file)
     
-
-
 
 def predict_caption(model, image_feats, word_to_id, id_to_word):
     '''
@@ -141,16 +148,62 @@ def predict_caption(model, image_feats, word_to_id, id_to_word):
 
         if next_word == word_to_id[END_TOKEN]:
             break
-    # remove start, end, and pad tokens from caption
-    filtered_cap = list(filter(lambda w: w != word_to_id[PAD_TOKEN] and w != word_to_id[START_TOKEN] and w != word_to_id[END_TOKEN] , cap))
 
-    caption = ""
-    for id in filtered_cap:
-        caption = caption + SPACE + id_to_word[id]
+    return detokenize(cap, word_to_id, id_to_word)
     
-    # print(caption)
-    # exit()
-    return caption
+
+
+def detokenize(caption, word2id, id2word):
+    '''
+    :param: caption: tokenized caption
+    :param: word2id dictionary from word to id
+    :param: id2word: dictionary from id to word
+    '''
+    # remove start, end, and pad tokens from caption
+    # print(f'CAPTION: {caption}')
+    filtered_cap = list(filter(lambda w: w != word2id[PAD_TOKEN] and w != word2id[START_TOKEN] and w != word2id[END_TOKEN] , caption))
+    # print(f'FILTERED CAPTION: {filtered_cap}')
+
+    detoken_caption = ""
+    for id in filtered_cap:
+        detoken_caption = detoken_caption + SPACE + id2word[id]
+    return detoken_caption.lstrip()
+
+
+class BleuCallback(tf.keras.callbacks.Callback):
+    def __init__(self, model, image_feats, input_text, train_imgs, img2caps, word2id, id2word):
+        self.model = model
+        self.image_feats = image_feats
+        self.input_text = input_text
+        self.train_imgs = train_imgs
+        self.img2caps = img2caps
+        self.word2id = word2id
+        self.id2word = id2word
+
+    def on_epoch_end(self, epoch, logs=None):
+        rng = np.random.default_rng()
+        batch_image_inds = rng.choice(len(self.train_imgs), size=100, replace=False) # 100 random image indicies we will test on 
+        batch_image_feats = tf.gather(self.image_feats, indices=batch_image_inds*3)
+        batch_input_text = tf.gather(self.input_text, indices=batch_image_inds*3)
+
+        model_prediction = self.model.predict(x=[batch_image_feats, batch_input_text])
+        # print(f'MODEL PREDICTION SIZE: {model_prediction.shape}')
+        seq_pred = np.argmax(model_prediction, axis=2) # 100 x 19
+        # print(f'SEQ PREDICTION SIZE: {seq_pred.shape}')
+
+        batch_images = [self.train_imgs[i] for i in batch_image_inds]
+
+        img2prediction = {}
+        # print(seq_pred.shape)
+        
+        for img, seq in zip(batch_images, seq_pred):
+            pred_cap = detokenize(list(seq), self.word2id, self.id2word)
+            img2prediction[img] = pred_cap
+        # print(img2prediction)
+        
+        b1, b2, b3, b4 = bleu_score(batch_images, self.img2caps, img2prediction)
+        print('b1: ' + str(b1), 'b2: '+ str(b2), 'b3: ' + str(b3), 'b4: ' + str(b4))
+        TRAINING_BLEU = [b1, b2, b3, b4]
 
 
 # def verify_caption_ordering(example_image, img_to_token_caps, img_to_caps, id_to_word):
@@ -188,22 +241,26 @@ if __name__ == "__main__":
 
     img2features = get_features(all_imgs)
     
+    # Itrain, Xtrain, and Ytrain are in the order of train_imgs
     Itrain, Xtrain, Ytrain = prep_data(img2tokenizedcaps, img2features, train_imgs)
 
     print(f'Training on {len(Xtrain)} examples...')
     print(f'Training on {len(train_imgs)} examples...')
     print(f'Testing on {len(test_imgs)} images.')
-
-    # print(f'ITrain {Itrain.shape} ')
-    # print(f'XTrain {Xtrain.shape}')
-    # print(f'YTrain {Ytrain.shape}')
     
-    try:
-        decoder = tf.keras.models.load_model(MODEL_PATH)
-    except:
-        decoder_instance = Decoder(vocab_size=len(vocab))
-        decoder = decoder_instance.get_model()
-        train(decoder_instance, decoder, Itrain, Xtrain, Ytrain)
+    # try:
+    #     decoder = tf.keras.models.load_model(MODEL_PATH)
+    # except:
+    #     decoder_instance = Decoder(vocab_size=len(vocab))
+    #     decoder = decoder_instance.get_model()
+    #     train(decoder_instance, decoder, Itrain, Xtrain, Ytrain, train_imgs, img2caps, vocab, reverse_vocab)
+ 
+    decoder_instance = Decoder(vocab_size=len(vocab))
+    decoder = decoder_instance.get_model()
+    train(decoder_instance, decoder, Itrain, Xtrain, Ytrain, train_imgs, img2caps, vocab, reverse_vocab)
+   
+    test(decoder, img2features, test_imgs, vocab, reverse_vocab, img2caps)
+    visualize_accuracy(TRAINING_BLEU, TESTING_BLEU)
 
     
     
