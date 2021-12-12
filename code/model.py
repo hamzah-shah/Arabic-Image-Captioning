@@ -27,7 +27,7 @@ class Encoder(tf.keras.Model):
 
     def call(self, img):
         '''
-        :param imgs: an images to be encoded
+        :param img: an images to be encoded
         :return embedding: a 4096 dimensional embedding of the image
         '''
         assert(img.shape == (224,224,3))
@@ -37,7 +37,7 @@ class Encoder(tf.keras.Model):
 class Decoder():
     '''
     Decoder portion of the End-to-End captioning model.
-    The decoder is a recurrent network, specifically an LSTM.
+    The decoder is a recurrent network, specifically a GRU.
     '''
     def __init__(self, vocab_size):
         self.batch_size = 512
@@ -53,6 +53,7 @@ class Decoder():
         self.input_text = Input(shape=(MAXLEN-1,))
 
         self.image_dense = Dense(units=self.image_embedding_size, activation="tanh")
+        # mask zero to mask the padding
         self.text_embedding = Embedding(input_dim=self.vocab_size, output_dim=self.text_embedding_size, input_length=MAXLEN-1, mask_zero=True) 
         self.gru = GRU(units=256,return_sequences=True, return_state=True)
         self.text_dense1 = Dense(units=256, activation="relu")

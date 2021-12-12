@@ -23,10 +23,12 @@ PAD_TOKEN = "<PAD>"
 SPACE = " "
 MAXLEN = 20
 
-TRAINING_BLEU = []
-TESTING_BLEU = []
 
 def get_image_list(file):
+    '''
+    Returns a list of images in the raw file.
+    :param file: raw file to read from
+    '''
     with open(file) as f:
         imgs = f.read().splitlines()
     assert(len(imgs) == len(set(imgs))) # no image listed more than once
@@ -38,7 +40,7 @@ def prep_data(img_to_token_caps, img_to_feats, train_list):
     :param img_to_token_caps: dictionary mapping each image to a list of tokenized captions
     :param img_to_feats: dictionary mapping each image to a feature vector
     :param train_list: list of images in training set 
-    :returns I_train, X_train, Y_train
+    :returns 3 tensors: 1) image features, 2) input text, 3) output text
     '''
     I_train, X_train, Y_train = [], [], []
 
@@ -59,6 +61,7 @@ def get_features(image_list):
     '''
     Creates a map from each image to its features extracted from the Encoder model.
     :param image_list: list of all images
+    :returns dict of img -> feature vec
     '''
     image_features = None
     try:
@@ -78,6 +81,9 @@ def get_features(image_list):
 
 
 def plot_loss(hist):
+    '''
+    Plots training and validation loss.
+    '''
     # loss plot
     plt.plot(hist.history['loss'])
     plt.plot(hist.history['val_loss'])
@@ -93,11 +99,14 @@ def train(model_class, model, image_inputs, text_inputs, text_labels, training_i
     '''
     Trains the decoder model.
     :param model_class: class for the decoder model
-    :param model
-    :param image_inputs
-    :param text_inputs
-    :param text_labels
-    :param pad_index
+    :param model: decoder model
+    :param image_inputs: feature vectors
+    :param text_inputs: input text
+    :param text_labels: output text
+    :param training_images: list of training images
+    :param word_to_id: vocab dict
+    :param id_to_word: reverse vocab dict
+    :returns training BLEU scores
     '''
     model.compile(optimizer=model_class.optimizer, loss=model_class.loss)
     bleu_callback = BleuCallback(model, image_inputs, text_inputs, training_images, img_to_caps, word_to_id, id_to_word)
@@ -112,9 +121,13 @@ def train(model_class, model, image_inputs, text_inputs, text_labels, training_i
 def test(model, img_to_feats, testing_images, word2id, id2word, img2caps):
     '''
     Tests the decoder model using greedy search.
-    :param model
+    :param model: trained decoder model
     :param img_to_feats: map from image to feature vector
     :param testing_images: list of test images
+    :param word2id: vocab dict
+    :param id2word: reverse vocab dict
+    :param img2caps: map from image to list of true captions
+    :returns testing BLEU scores
     '''
     img2prediction = {}
     for i, img in enumerate(testing_images):
@@ -136,14 +149,12 @@ def test(model, img_to_feats, testing_images, word2id, id2word, img2caps):
 def predict_caption(model, image_feats, word_to_id, id_to_word):
     '''
     Given a trained model and an encoded image features, returns a predicted caption.
-    :param model
-    :param image_feats: an feature vector that encodes an image
-    return predicted caption
+    :param model: trained decoder model
+    :param image_feats: img -> feature vector that encodes an image
+    :param word_to_id: vocab dict
+    :param id_to_word: reverse vocab dict
+    :returns predicted, detokenized caption
     '''
-    # print(f'START TOKEN: {word_to_id[START_TOKEN]}')
-    # print(f'END TOKEN: {word_to_id[END_TOKEN]}')
-    # print(f'PAD TOKEN: {word_to_id[PAD_TOKEN]}')
-
     cap = [word_to_id[START_TOKEN]]
     for _ in range(MAXLEN):
         padded_cap = tf.convert_to_tensor(tf.keras.preprocessing.sequence.pad_sequences([cap], maxlen=MAXLEN-1, padding='post'))
@@ -160,9 +171,10 @@ def predict_caption(model, image_feats, word_to_id, id_to_word):
 
 def detokenize(caption, word2id, id2word):
     '''
+    Detokenizes a predicted caption into Arabic text.
     :param: caption: tokenized caption
-    :param: word2id dictionary from word to id
-    :param: id2word: dictionary from id to word
+    :param word2id: vocab dict
+    :param id2word: reverse vocab dict
     '''
     # remove start, end, and pad tokens from caption
     # print(f'CAPTION: {caption}')
@@ -176,6 +188,9 @@ def detokenize(caption, word2id, id2word):
 
 
 class BleuCallback(tf.keras.callbacks.Callback):
+    '''
+    Callback that prints BLEU scores at the end of each training epoch.
+    '''
     def __init__(self, model, image_feats, input_text, train_imgs, img2caps, word2id, id2word):
         self.model = model
         self.image_feats = image_feats
@@ -189,25 +204,25 @@ class BleuCallback(tf.keras.callbacks.Callback):
         self.bleu_list = []
 
     def on_epoch_end(self, epoch, logs=None):
+        '''
+        Randomly samples 100 images in the training set for which to generate BLEU scores.
+        '''
+        # generating random sample of images
         rng = np.random.default_rng()
         batch_image_inds = rng.choice(len(self.train_imgs), size=100, replace=False) # 100 random image indicies we will test on 
         batch_image_feats = tf.gather(self.image_feats, indices=batch_image_inds*3)
         batch_input_text = tf.gather(self.input_text, indices=batch_image_inds*3)
 
         model_prediction = self.model.predict(x=[batch_image_feats, batch_input_text])
-        # print(f'MODEL PREDICTION SIZE: {model_prediction.shape}')
         seq_pred = np.argmax(model_prediction, axis=2) # 100 x 19
-        # print(f'SEQ PREDICTION SIZE: {seq_pred.shape}')
 
         batch_images = [self.train_imgs[i] for i in batch_image_inds]
 
         img2prediction = {}
-        # print(seq_pred.shape)
         
         for img, seq in zip(batch_images, seq_pred):
             pred_cap = detokenize(list(seq), self.word2id, self.id2word)
             img2prediction[img] = pred_cap
-        # print(img2prediction)
         
         b1, b2, b3, b4 = bleu_score(batch_images, self.img2caps, img2prediction)
         print('b1: ' + str(b1), 'b2: '+ str(b2), 'b3: ' + str(b3), 'b4: ' + str(b4))
@@ -237,12 +252,11 @@ class BleuCallback(tf.keras.callbacks.Callback):
 
 
 if __name__ == "__main__":
-    # 8091 images in the Flicker_8k dataset
     all_imgs = os.listdir(IMAGE_DIR)
-    test_imgs = get_image_list(TEST_IMGS_FILE) # 1000
+    test_imgs = get_image_list(TEST_IMGS_FILE)
     train_imgs = [img for img in all_imgs if img not in test_imgs]
 
-    vocab, img2tokenizedcaps, img2caps = get_data(DATA_FILE, all_imgs) # word2index, padded and tokenized caps
+    vocab, img2tokenizedcaps, img2caps = get_data(DATA_FILE, all_imgs)
 
     reverse_vocab = {} # maps id to word
     for word, id in vocab.items():
@@ -262,16 +276,10 @@ if __name__ == "__main__":
     # try:
     #     decoder = tf.keras.models.load_model(MODEL_PATH)
     # except:
-    #     decoder_instance = Decoder(vocab_size=len(vocab))
-    #     decoder = decoder_instance.get_model()
-    #     training_bleu = train(decoder_instance, decoder, Itrain, Xtrain, Ytrain, train_imgs, img2caps, vocab, reverse_vocab)
+
     decoder_instance = Decoder(vocab_size=len(vocab))
     decoder = decoder_instance.get_model()
     training_bleu = train(decoder_instance, decoder, Itrain, Xtrain, Ytrain, train_imgs, img2caps, vocab, reverse_vocab)
     
     testing_bleu = test(decoder, img2features, test_imgs, vocab, reverse_vocab, img2caps)
     visualize_accuracy(training_bleu, testing_bleu)
-
-
-    
-    

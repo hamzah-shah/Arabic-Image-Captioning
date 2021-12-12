@@ -4,32 +4,30 @@ import re
 
 VGG16_IMG_SIZE = (224,224)
 
-def show_image(file):
-    import os
-    import matplotlib.pyplot as plt
-    import matplotlib.image as mpimg
-    ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    path = os.path.join(ROOT, "data/Flicker8k_Dataset", file)
-    img = mpimg.imread(path)
-    imgplot = plt.imshow(img)
-    plt.show()
-
-def preprocess_image(img):
-    '''
-    Preprocesses an image according to VGG16 preprocessing.
-    :param image: image to be processed
-    :return image: VGG16 processed image
-    '''
-    img = image.img_to_array(image.load_img(img, target_size=VGG16_IMG_SIZE))
-    return tf.keras.applications.vgg16.preprocess_input(img)
-
-
-
 START_TOKEN = "<START>"
 END_TOKEN = "<END>"
 PAD_TOKEN = "<PAD>"
 SPACE = " "
 MAXLEN = 20
+
+# def show_image(file):
+#     import os
+#     import matplotlib.pyplot as plt
+#     import matplotlib.image as mpimg
+#     ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+#     path = os.path.join(ROOT, "data/Flicker8k_Dataset", file)
+#     img = mpimg.imread(path)
+#     imgplot = plt.imshow(img)
+#     plt.show()
+
+def preprocess_image(img):
+    '''
+    Preprocesses an image according to VGG16 preprocessing.
+    :param img: image to be processed
+    :returns VGG16 processed image
+    '''
+    img = image.img_to_array(image.load_img(img, target_size=VGG16_IMG_SIZE))
+    return tf.keras.applications.vgg16.preprocess_input(img)
 
 
 def clean_caption(caption):
@@ -77,6 +75,7 @@ def make_caption_dict(raw_data):
     '''
     Creates a dictionary mapping each image to a list of its captions.
     :param raw_data: file with image names and captions
+    returns dict mapping an image to a list of its true caption
     '''
     output = {}
 
@@ -108,8 +107,9 @@ def make_vocab_dict(capt_dict, all_imgs):
     Takes in the output from make_caption_dict() and constructs a dictionary 
     that maps each unique word in all of these captions to a word id.
 
-    :param output: dictionary that maps image number/name to a list of its captions
-    :returns vocab_dict: vocab dictionary which maps each unique word in the captions to an id
+    :param capt_dict: dictionary that maps image number/name to a list of its captions
+    :param all_imgs: list of images from whose captions to create the dictionary
+    :returns vocab dictionary which maps each unique word in the captions to an id
     '''
 
     vocab_dict = {}
@@ -132,7 +132,7 @@ def make_vocab_dict(capt_dict, all_imgs):
 def tokenize_pad_captions(image_to_caps, vocab):
     '''
     Tokenizes all captions.
-    :param output: dictionary mapping each image to its captions (the output from make_caption_dict())
+    :param imgage_to_caps: dictionary mapping each image to its captions (the output from make_caption_dict())
     :param vocab: vocabulary dictionary
     :returns dictionary mapping each image to its tokenized captions
     '''
@@ -151,7 +151,10 @@ def tokenize_pad_captions(image_to_caps, vocab):
 
 def get_data(file, all_imgs):
     '''
-    Returns 1) arabic vocabulary, 2) dict mapping image to list of its tokenized captions, 3) index of the pad token
+    Returns 1) arabic vocabulary, 2) dict mapping image to list of its tokenized captions, 
+    3) dict mapping image to list of its untokenized captions
+    :param file: file from which to get captions and image names
+    :param all_imgs: list of images from which to create the vocabulary
     '''
     with open(file) as f:
         data = f.read().splitlines()
