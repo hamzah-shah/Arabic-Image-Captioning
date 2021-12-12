@@ -10,6 +10,7 @@ from bleu import *
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 IMAGE_DIR = os.path.join(ROOT, "data/Flicker8k_Dataset")
+COCO_PATH = os.path.join(ROOT, "/Users/khosrowarian/Desktop/coco/coco/images/selected_images")
 VGG_16FEATURES_FILE = os.path.join(ROOT, 'data/vgg16_features.pickle')
 DATA_FILE = os.path.join(ROOT, "data/Flickr8k_text", "Flickr8k.arabic.full.txt")
 TEST_IMGS_FILE = os.path.join(ROOT, "data/Flickr8k_text", "Flickr_8k.testImages.txt")
@@ -75,6 +76,26 @@ def get_features(image_list):
             image_features[image] = encoder(processed_image)
         with open(VGG_16FEATURES_FILE, 'wb') as file:
             pickle.dump(image_features, file)
+    
+    assert(image_features is not None)
+    return image_features
+
+def get_features_for_coco(image_list):
+    '''
+    Creates a map from each image to its features extracted from the Encoder model.
+    :param image_list: list of all images
+    '''
+    # image_list = list(images_to_get())
+    image_features = None
+    try:
+        with open(VGG_16FEATURES_FILE, 'rb') as file:
+            image_features = pickle.load(file)
+    except:
+        encoder = Encoder()
+        image_features = {}
+        for image in image_list:
+            processed_image = preprocess_image(os.path.join(COCO_PATH, image))
+            image_features[image] = encoder(processed_image)
     
     assert(image_features is not None)
     return image_features
@@ -252,6 +273,13 @@ class BleuCallback(tf.keras.callbacks.Callback):
 
 
 if __name__ == "__main__":
+    
+    # coco data
+    coco_images = os.listdir(COCO_PATH)
+    coco_imag_to_feature = get_features_for_coco(coco_images)
+    coco_image_to_caption = get_coco_data()
+    
+    
     all_imgs = os.listdir(IMAGE_DIR)
     test_imgs = get_image_list(TEST_IMGS_FILE)
     train_imgs = [img for img in all_imgs if img not in test_imgs]
